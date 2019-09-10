@@ -8,13 +8,13 @@ public class Window {
 	private int width, height;
 	private long windowHandle;
 	
-	public Window(String title, int width, int height) {
+	public Window(String title, int width, int height) throws WindowNotCreatedException {
 		this.title = title;
 		this.width = width;
 		this.height = height;
 		windowHandle = GLFW.glfwCreateWindow(width, height, title, 0, 0);
 		if(windowHandle == 0) {
-			System.err.println("Failed to create window " + title + " (" + width + ", " + height + ")");
+			throw new WindowNotCreatedException("Could not create window " + title + " " + width + "x" + height);
 		}
 	}
 	

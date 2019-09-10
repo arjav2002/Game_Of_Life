@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -56,4 +58,27 @@ public class NetUtils {
 		return msg;
 	}
 	
+	public static Object getObject(Socket socket) {
+		Object obj = null;
+		try {
+			ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+			obj = ois.readObject();
+		} catch (IOException | ClassNotFoundException e) {
+			System.out.println("Could not read Object from " + socket.getInetAddress().toString());
+			e.printStackTrace();
+		}
+		return obj;
+	}
+	
+	public static void sendObject(Socket socket, Object obj) {
+		ObjectOutputStream oos;
+		try {
+			oos = new ObjectOutputStream(socket.getOutputStream());
+			oos.writeObject(obj);
+			oos.flush();
+		} catch (IOException e) {
+			System.out.println("Not able to send object: " + obj);
+			e.printStackTrace();
+		}
+	}
 }

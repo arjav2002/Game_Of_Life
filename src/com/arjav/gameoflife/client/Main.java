@@ -7,46 +7,100 @@ import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 
-import com.arjav.gameoflife.client.net.Connect;
+import org.lwjgl.glfw.GLFW;
 
-public class Main extends JFrame{
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+import com.arjav.gameoflife.client.game.Game;
+import com.arjav.gameoflife.client.gl.WindowNotCreatedException;
+import com.arjav.gameoflife.client.net.Connect;
+import com.arjav.gameoflife.client.game.Type;
+
+public class Main {
+	
 	private JTextField nametextField;
 	private JPasswordField passwordField;
+	private JComboBox<String> comboBox;
+	private DefaultComboBoxModel<String> comboBoxModel;
+	private ArrayList<String> serverList;
 	private JButton btnOk;
 	private Connect serverCon;
+	private JFrame frame;;
+	private Thread serverSearchThread;
 	
 	private Main(String title, int width, int height) {
-		super(title);
-		setSize(new Dimension(250, 200));
-		setLocationRelativeTo(null);
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setVisible(true);
+		frame = new JFrame(title);
+		frame.setSize(new Dimension(250, 200));
+		frame.setLocationRelativeTo(null);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setVisible(true);
 		connectToServer();
 	}
 	
 	private void connectToServer() {
 		JLabel label = new JLabel("Connecting to server...");
-		getContentPane().add(label);
+		frame.getContentPane().add(label);
 		serverCon = new Connect();
 		serverCon.init();
-		getContentPane().remove(label);
+		frame.getContentPane().remove(label);
 		createAndShowGUI();
+		serverSearchThread = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				serverCon.findServers(serverList, comboBoxModel);
+			}
+		});
+		serverCon.searchForServers(true);
+		serverSearchThread.start();
 	}
 	
 	private void okButtonCallback(ActionEvent e) {
-		System.out.println(serverCon.requestConnection(nametextField.getText(), new String(passwordField.getPassword())));
+		String password = new String(passwordField.getPassword());
+		if(!nametextField.getText().equals("") && !password.equals("")) {
+			if(serverCon.requestConnection(nametextField.getText(), password, (String)comboBox.getSelectedItem())) {
+				// we can go onto the openGL rendering now
+				
+				if(!GLFW.glfwInit()) {
+					nametextField.setText("Failed to initialise openGL");
+					serverCon.sendMessage("initFailure");
+				}
+				else {
+					try {
+						serverCon.searchForServers(false);
+						serverSearchThread.join();
+					} catch (InterruptedException e1) {
+						System.err.println("not able to stop server searching thread");
+						e1.printStackTrace();
+					}
+					try {
+						Game game = new Game("The Game of Life!", 1080, 720, serverCon);
+						frame.setVisible(false);
+						//frame.dispose(); TODO why is this causing an error
+						game.init();
+					}
+					catch(WindowNotCreatedException e2) {
+						serverCon.sendMessage("initFailure");
+						e2.printStackTrace();
+					}
+				}
+				
+			}
+			else {
+				nametextField.setText("Wrong password entered");
+			}
+		}
+		else {
+			nametextField.setText("Enter something in both fields");
+		}
 	}
 	
 	public static void main(String[] args) {
@@ -56,10 +110,10 @@ public class Main extends JFrame{
 	private void createAndShowGUI() {
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[] {250};
-		gridBagLayout.rowHeights = new int[] {150, 100};
+		gridBagLayout.rowHeights = new int[] {150, 50, 50};
 		gridBagLayout.columnWeights = new double[]{0.0};
 		gridBagLayout.rowWeights = new double[]{0.0, 0.0};
-		getContentPane().setLayout(gridBagLayout);
+		frame.getContentPane().setLayout(gridBagLayout);
 		
 		JPanel labelAndFieldPanel = new JPanel();
 		GridBagConstraints gbcLabelAndFieldPanel = new GridBagConstraints();
@@ -68,7 +122,7 @@ public class Main extends JFrame{
 		gbcLabelAndFieldPanel.gridx = 0;
 		gbcLabelAndFieldPanel.gridy = 0;
 		gbcLabelAndFieldPanel.weighty = 0.7;
-		getContentPane().add(labelAndFieldPanel, gbcLabelAndFieldPanel);
+		frame.getContentPane().add(labelAndFieldPanel, gbcLabelAndFieldPanel);
 		GridBagLayout gblLabelAndFieldPanel = new GridBagLayout();
 		gblLabelAndFieldPanel.columnWidths = new int[] {0, 0, 0};
 		gblLabelAndFieldPanel.rowHeights = new int[]{0, 0};
@@ -110,11 +164,20 @@ public class Main extends JFrame{
 		passwordField = new JPasswordField();
 		fieldPanel.add(passwordField);
 		
+		comboBoxModel = new DefaultComboBoxModel<String>();
+		comboBox = new JComboBox<String>(comboBoxModel);
+		serverList = new ArrayList<String>();
+		GridBagConstraints gbcComboBox = new GridBagConstraints();
+		gbcComboBox.gridx = 0;
+		gbcComboBox.gridy = 1;
+		gbcComboBox.weighty = 0.15;
+		frame.getContentPane().add(comboBox, gbcComboBox);
+		
 		btnOk = new JButton("OK");
-		GridBagConstraints gbc_btnOk = new GridBagConstraints();
-		gbc_btnOk.gridx = 0;
-		gbc_btnOk.gridy = 1;
-		gbc_btnOk.weighty = 0.3;
+		GridBagConstraints gbcBtnOk = new GridBagConstraints();
+		gbcBtnOk.gridx = 0;
+		gbcBtnOk.gridy = 2;
+		gbcBtnOk.weighty = 0.15;
 		btnOk.addActionListener(new ActionListener() {
 
 			@Override
@@ -123,8 +186,10 @@ public class Main extends JFrame{
 			}
 			
 		});
-		getContentPane().add(btnOk, gbc_btnOk);
-		setVisible(true);
+		frame.getContentPane().add(btnOk, gbcBtnOk);
+		
+		frame.setVisible(true);
 	}
+
 
 }

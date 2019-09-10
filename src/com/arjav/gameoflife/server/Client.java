@@ -1,6 +1,9 @@
 package com.arjav.gameoflife.server;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -11,6 +14,8 @@ public class Client {
 	private Socket socket;
 	private String username;
 	private String password;
+	private BufferedReader br;
+	private PrintWriter pw;
 	
 	public Client(String IPaddr, String username, String password) {
 		this.IPaddr = IPaddr;
@@ -27,7 +32,35 @@ public class Client {
 	public void connect() {
 		try {
 			socket = serverSock.accept();
+			br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			pw = new PrintWriter(socket.getOutputStream());
 		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void sendMessage(String msg) {
+		pw.println(msg);
+		pw.flush();
+	}
+	
+	public String getMessage() {
+		String msg = "";
+		try {
+			msg = br.readLine();
+		} catch (IOException e) {
+			System.err.println("Not able to get message for client: " + IPaddr);
+			e.printStackTrace();
+		}
+		return msg;
+	}
+	
+	public void closeSockets() {
+		try {
+			serverSock.close();
+			socket.close();
+		} catch (IOException e) {
+			System.err.println("Not able to close sockets for client: " + IPaddr);
 			e.printStackTrace();
 		}
 	}
