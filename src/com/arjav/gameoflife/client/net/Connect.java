@@ -97,15 +97,14 @@ public class Connect {
 	}
 	
 	public void sendMessage(String str) {
-		pw.println(str);
+		pw.println(str + "\n");
 		pw.flush();
 	}
 	
 	public String getMessage() {
 		String msg = "";
 		try {
-			// important distinction from the server getMessage code
-			while(msg.equals("")) msg = br.readLine();
+			while(msg == null || msg.isBlank()) msg = br.readLine();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

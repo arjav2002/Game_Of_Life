@@ -44,10 +44,21 @@ public class Client {
 		pw.flush();
 	}
 	
-	public String getMessage() {
+	public String peekMessage() {
 		String msg = "";
 		try {
 			msg = br.readLine();
+		} catch (IOException e) {
+			System.err.println("Not able to peek message for client: " + IPaddr);
+			e.printStackTrace();
+		}
+		return msg;
+	}
+	
+	public String getMessage() {
+		String msg = "";
+		try {
+			while(msg == null || msg.isBlank()) msg = br.readLine();
 		} catch (IOException e) {
 			System.err.println("Not able to get message for client: " + IPaddr);
 			e.printStackTrace();

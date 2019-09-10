@@ -9,23 +9,19 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Scanner;
-
-import com.arjav.gameoflife.client.game.Type;
 
 public class ServerMain {
 
 	// ranges for public and local multi cast groups are different
 	public static final String DISCOVERY_MUTLICAST_GROUP = "239.53.63.243"; // arbitrary
 	public static final String REQ_MULTICAST_GROUP = "239.47.52.22"; // arbitrary
-	public static final int MULTICAST_SERVER_PORT = 2134;
-	public static final int MULTICAST_CLIENT_PORT = 5282;
-	public static final int REQ_SEND_CLIENT_PORT = 4857;
-	public static final int REQ_RECEIVE_SERVER_PORT = 9682;
-	public static final int REQ_RESPONSE_SERVER_PORT = 5829;
-	public static final int RESP_RECEIVE_CLIENT_PORT = 2389;
+	public static final int MULTICAST_SERVER_PORT = 1134;
+	public static final int MULTICAST_CLIENT_PORT = 5138;
+	public static final int REQ_SEND_CLIENT_PORT = 9107;
+	public static final int REQ_RECEIVE_SERVER_PORT = 9145;
+	public static final int REQ_RESPONSE_SERVER_PORT = 4913;
+	public static final int RESP_RECEIVE_CLIENT_PORT = 3969;
 	
 	private InetAddress localGroup;
 	private InetAddress reqGroup;
@@ -39,7 +35,7 @@ public class ServerMain {
 	private Thread privateReqProcessThread;
 	
 	private ArrayList<ServerPlayer> playerList;
-	private Map<String, String> registeredUsers;
+	private ArrayList<String[]> registeredUsers;
 	
 	private volatile boolean running = false;
 	
@@ -47,9 +43,10 @@ public class ServerMain {
 		try {
 			localGroup = InetAddress.getByName(DISCOVERY_MUTLICAST_GROUP);
 			reqGroup = InetAddress.getByName(REQ_MULTICAST_GROUP);
-			registeredUsers = new HashMap<String, String>();
+			registeredUsers = new ArrayList<String[]>();
 			readRegisteredUsers();
 			serverAddr = InetAddress.getLocalHost();
+			playerList = new ArrayList<ServerPlayer>();
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
@@ -70,6 +67,7 @@ public class ServerMain {
 					while(running) processRequests();
 				}
 			});
+			privateReqProcessThread.start();
 		} catch(IOException e) {
 			e.printStackTrace();
 		}
@@ -77,10 +75,12 @@ public class ServerMain {
 	
 	private void processRequests() {
 		for(ServerPlayer player : playerList) {
-			String req = player.getAssociatedClient().getMessage();
-			if(req.equals("GT")) {
-				if(player.getType() != null) player.getAssociatedClient().sendMessage("null");
-				else player.getAssociatedClient().sendMessage(player.getType().toString());
+			String req = player.getAssociatedClient().peekMessage();
+			if(req != null) {
+				if(req.equals("GT")) {
+					if(player.getType() == null) player.getAssociatedClient().sendMessage("null");
+					else player.getAssociatedClient().sendMessage(player.getType().toString());
+				}
 			}
 		}
 	}
@@ -90,14 +90,16 @@ public class ServerMain {
 		// check if user with username exists in the archives
 		// if yes then load player
 		// else generate new player
-		if(registeredUsers.containsKey(clientInfo[1])) {
-			if(!registeredUsers.get(clientInfo[1]).equals(clientInfo[2])) {
+		String[] regUser = userIsRegistered(clientInfo[1]);
+		
+		if(regUser != null) {
+			if(!regUser[1].equals(clientInfo[2])) {
 				NetUtils.sendMessage(reqResponseSocket, clientInfo[0] + " IP", reqGroup, RESP_RECEIVE_CLIENT_PORT);
 				// incorrect password
 				return;
 			}
 		} else {
-			registeredUsers.put(clientInfo[1], clientInfo[2]);
+			registeredUsers.add(new String[] {clientInfo[1], clientInfo[2], ""});
 		}
 		
 		Client c = new Client(clientInfo[0], clientInfo[1], clientInfo[2]);
@@ -106,10 +108,13 @@ public class ServerMain {
 		// correct password, here's your dedicated port, client
 		
 		c.connect();
-		String responseReceived = NetUtils.getMessage(c.getSocket());
+		String responseReceived = c.getMessage();
 		if(responseReceived.equals("initFailure")) {
 			c.closeSockets();
 			System.out.println("Client " + c.getIPAddr() + " was not able to initialise");
+		}
+		else {
+			playerList.add(new ServerPlayer(0, 0, clientInfo[1], null, c));
 		}
 	}
 	
@@ -163,8 +168,12 @@ public class ServerMain {
 			reqReceiveSocket.close();
 			reqResponseSocket.close();
 			PrintWriter pw = new PrintWriter(new FileWriter(new File("/Users.txt")));
-			for(Map.Entry<String, String> entry : registeredUsers.entrySet()) {
-				pw.println(entry.getKey() + " " + entry.getValue());
+			for(String[] tokens : registeredUsers) {
+				String line = "";
+				for(String token : tokens) {
+					line += token + " ";
+				}
+				pw.println(line);
 			}
 			pw.close();
 			for(ServerPlayer player : playerList) {
@@ -189,7 +198,7 @@ public class ServerMain {
 		sc = new Scanner(getClass().getResourceAsStream("/Users.txt"));
 		while(sc.hasNextLine()) {
 			String[] tokens = sc.nextLine().split(" ");
-			registeredUsers.put(tokens[0], tokens[1]);
+			registeredUsers.add(new String[] {tokens[0], tokens[1], tokens[2]});
 		}
 		sc.close();
 	}
@@ -199,6 +208,17 @@ public class ServerMain {
 		sm.init();
 		sm.run();
 		sm.end();
+	}
+	
+	private String[] userIsRegistered(String username) {
+		String[] arr = null;
+		for(String[] tokens : registeredUsers) {
+			if(tokens[0].equals(username)) {
+				arr = tokens;
+				break;
+			}
+		}
+		return arr;
 	}
 	
 }

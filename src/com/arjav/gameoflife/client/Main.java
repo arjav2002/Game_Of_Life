@@ -68,7 +68,6 @@ public class Main {
 		if(!nametextField.getText().equals("") && !password.equals("")) {
 			if(serverCon.requestConnection(nametextField.getText(), password, (String)comboBox.getSelectedItem())) {
 				// we can go onto the openGL rendering now
-				
 				if(!GLFW.glfwInit()) {
 					nametextField.setText("Failed to initialise openGL");
 					serverCon.sendMessage("initFailure");
@@ -82,10 +81,12 @@ public class Main {
 						e1.printStackTrace();
 					}
 					try {
-						Game game = new Game("The Game of Life!", 1080, 720, serverCon);
+						Game game = new Game("The Game of Life!", 640, 480, serverCon);
 						frame.setVisible(false);
-						//frame.dispose(); TODO why is this causing an error
+						// frame.dispose(); //TODO why is this causing an error
+						// if this is called after glfwInit, it causes a BadWindow error
 						game.init();
+						game.start();
 					}
 					catch(WindowNotCreatedException e2) {
 						serverCon.sendMessage("initFailure");
