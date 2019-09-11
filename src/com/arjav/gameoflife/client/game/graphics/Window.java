@@ -1,4 +1,4 @@
-package com.arjav.gameoflife.client.gl;
+package com.arjav.gameoflife.client.game.graphics;
 
 import org.lwjgl.glfw.GLFW;
 

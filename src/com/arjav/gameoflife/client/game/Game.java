@@ -8,8 +8,9 @@ import static org.lwjgl.opengl.GL.*;
 import static org.lwjgl.opengl.GL11.*;
 
 import com.arjav.gameoflife.client.FrameTimer;
-import com.arjav.gameoflife.client.gl.Window;
-import com.arjav.gameoflife.client.gl.WindowNotCreatedException;
+import com.arjav.gameoflife.client.game.graphics.RenderHandler;
+import com.arjav.gameoflife.client.game.graphics.Window;
+import com.arjav.gameoflife.client.game.graphics.WindowNotCreatedException;
 import com.arjav.gameoflife.client.net.Connect;
 
 public class Game implements Runnable {

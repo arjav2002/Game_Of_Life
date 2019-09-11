@@ -1,6 +1,9 @@
-package com.arjav.gameoflife.client.game;
+package com.arjav.gameoflife.client.game.graphics;
 
 import org.lwjgl.glfw.GLFW;
+
+import com.arjav.gameoflife.client.game.Game;
+
 import static org.lwjgl.opengl.GL11.*;
 
 public class RenderHandler {

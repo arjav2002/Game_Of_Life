@@ -21,9 +21,9 @@ import javax.swing.JTextField;
 import org.lwjgl.glfw.GLFW;
 
 import com.arjav.gameoflife.client.game.Game;
-import com.arjav.gameoflife.client.gl.WindowNotCreatedException;
 import com.arjav.gameoflife.client.net.Connect;
 import com.arjav.gameoflife.client.game.Type;
+import com.arjav.gameoflife.client.game.graphics.WindowNotCreatedException;
 
 public class Main {
 	
