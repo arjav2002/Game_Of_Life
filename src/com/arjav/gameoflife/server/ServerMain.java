@@ -34,8 +34,8 @@ public class ServerMain {
 	private Thread publicReqProcessThread;
 	private Thread privateReqProcessThread;
 	
-	private ArrayList<ServerPlayer> playerList;
-	private ArrayList<String[]> registeredUsers;
+	private volatile ArrayList<ServerPlayer> playerList;
+	private volatile ArrayList<String[]> registeredUsers;
 	
 	private volatile boolean running = false;
 	
@@ -163,6 +163,14 @@ public class ServerMain {
 	}
 	
 	private void end() {
+		running = false;
+		try {
+			publicReqProcessThread.join();
+			privateReqProcessThread.join();
+		} catch(InterruptedException e) {
+			e.printStackTrace();
+		}
+		
 		broadcastSocket.close();
 		try {
 			reqReceiveSocket.close();
@@ -181,14 +189,6 @@ public class ServerMain {
 				player.getAssociatedClient().getSocket().close();
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		running = false;
-		try {
-			publicReqProcessThread.join();
-			privateReqProcessThread.join();
-		} catch(InterruptedException e) {
 			e.printStackTrace();
 		}
 	}

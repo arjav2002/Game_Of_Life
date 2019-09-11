@@ -1,11 +1,10 @@
 package com.arjav.gameoflife.client.game;
 
-import java.awt.Rectangle;
+import static org.lwjgl.opengl.GL.*;
+import static org.lwjgl.opengl.GL11.*;
 
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWVidMode;
-import static org.lwjgl.opengl.GL.*;
-import static org.lwjgl.opengl.GL11.*;
 
 import com.arjav.gameoflife.client.FrameTimer;
 import com.arjav.gameoflife.client.game.graphics.RenderHandler;
@@ -26,7 +25,6 @@ public class Game implements Runnable {
 	
 	private static final int FPS = 60;
 	private int frames;
-	private Rectangle chooseMedicRect, chooseJuggernautRect, chooseSniperRect;
 	
 	public Game(String title, int width, int height, Connect connect) throws WindowNotCreatedException {
 		this.window = new Window(title, width, height);
@@ -39,15 +37,22 @@ public class Game implements Runnable {
 		eventHandler = new EventHandler(this);
 		connect.sendMessage("initSuccess");
 		
-		chooseMedicRect = new Rectangle((window.getWidth()-window.getWidth()/5)/3, window.getHeight()/4, window.getWidth()/5, window.getHeight()/2);
-		chooseJuggernautRect = new Rectangle(2*(window.getWidth()-window.getWidth()/5)/3 + window.getWidth()/5, window.getHeight()/4, window.getWidth()/5, window.getHeight()/2);
-		chooseSniperRect = new Rectangle((window.getWidth()-window.getWidth()/5) + 2*window.getWidth()/5, window.getHeight()/4, window.getWidth()/5, window.getHeight()/2);
+		//chooseMedicRect = new Rectangle((window.getWidth()-window.getWidth()/5)/3, window.getHeight()/4, window.getWidth()/5, window.getHeight()/2);
+		//chooseJuggernautRect = new Rectangle(2*(window.getWidth()-window.getWidth()/5)/3 + window.getWidth()/5, window.getHeight()/4, window.getWidth()/5, window.getHeight()/2);
+		//hooseSniperRect = new Rectangle((window.getWidth()-window.getWidth()/5) + 2*window.getWidth()/5, window.getHeight()/4, window.getWidth()/5, window.getHeight()/2);
 	}
 	
 	// some error happens during initialisation, send it through connect
 	// else send confirmation
 	
-	public void init() {
+	private void init() {
+		GLFW.glfwMakeContextCurrent(window.getWindowHandle());
+		GLFW.glfwShowWindow(window.getWindowHandle());
+		createCapabilities();
+		System.out.println("OpenGL: " + glGetString(GL_VERSION));
+		glEnable(GL_DEPTH_TEST);
+		renderHandler.init();
+		
 		// ascertain type of soldier and gamestate
 		connect.sendMessage("GT");
 		String type = connect.getMessage();
@@ -65,10 +70,7 @@ public class Game implements Runnable {
 	
 	@Override
 	public void run() {
-		GLFW.glfwMakeContextCurrent(window.getWindowHandle());
-		GLFW.glfwShowWindow(window.getWindowHandle());
-		createCapabilities();
-		System.out.println("OpenGL: " + glGetString(GL_VERSION));
+		init();
 		
 		FrameTimer ft = new FrameTimer(System.nanoTime());
 		double delta = 1.0/FPS * Math.pow(10, 9);

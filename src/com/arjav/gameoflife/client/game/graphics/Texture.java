@@ -22,7 +22,7 @@ public class Texture {
 	private int load(String path) {
 		int[] pixels = null;
 		try {
-			BufferedImage image = ImageIO.read(new FileInputStream(path));
+			BufferedImage image = ImageIO.read(getClass().getResourceAsStream(path));
 			width = image.getWidth();
 			height = image.getHeight();
 			pixels = new int[width * height];

@@ -21,9 +21,8 @@ import javax.swing.JTextField;
 import org.lwjgl.glfw.GLFW;
 
 import com.arjav.gameoflife.client.game.Game;
-import com.arjav.gameoflife.client.net.Connect;
-import com.arjav.gameoflife.client.game.Type;
 import com.arjav.gameoflife.client.game.graphics.WindowNotCreatedException;
+import com.arjav.gameoflife.client.net.Connect;
 
 public class Main {
 	
@@ -36,6 +35,7 @@ public class Main {
 	private Connect serverCon;
 	private JFrame frame;;
 	private Thread serverSearchThread;
+	private static final int WINDOW_SIZE = 40;
 	
 	private Main(String title, int width, int height) {
 		frame = new JFrame(title);
@@ -81,11 +81,10 @@ public class Main {
 						e1.printStackTrace();
 					}
 					try {
-						Game game = new Game("The Game of Life!", 640, 480, serverCon);
+						Game game = new Game("The Game of Life!", 16*WINDOW_SIZE, 9*WINDOW_SIZE, serverCon);
 						frame.setVisible(false);
 						// frame.dispose(); //TODO why is this causing an error
 						// if this is called after glfwInit, it causes a BadWindow error
-						game.init();
 						game.start();
 					}
 					catch(WindowNotCreatedException e2) {

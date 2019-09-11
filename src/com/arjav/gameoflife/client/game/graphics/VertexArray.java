@@ -67,10 +67,5 @@ public class VertexArray {
 		else
 			glDrawArrays(GL_TRIANGLES, 0, count);
 	}
-	
-	public void render() {
-		bind();
-		draw();
-	}
 
 }

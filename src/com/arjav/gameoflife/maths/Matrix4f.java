@@ -2,6 +2,8 @@ package com.arjav.gameoflife.maths;
 
 import java.nio.FloatBuffer;
 
+import com.arjav.gameoflife.client.glutils.MyBufferUtils;
+
 public class Matrix4f {
 	
 	public static final int SIZE = 4 * 4;
