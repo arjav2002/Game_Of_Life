@@ -15,10 +15,10 @@ public class RenderHandler {
 	public RenderHandler(Game game) {
 		this.game = game;
 		testModel = new Model("shaders/vertex.shd", "shaders/fragment.shd", "/swag.png", new float[] {
-				-0.5f, 0.5f, 1.0f,
-				0.5f, 0.5f, 1.0f,
-				0.5f, -0.5f, 1.0f,
-				-0.5f, -0.5f, 1.0f
+				-1.0f, 1.0f, 1.0f,
+				1.0f, 1.0f, 1.0f,
+				1.0f, -1.0f, 1.0f,
+				-1.0f, -1.0f, 1.0f
 		}, new byte[] {
 				3, 1, 0,
 				3, 2, 1
@@ -31,7 +31,6 @@ public class RenderHandler {
 	}
 	
 	public void render() {
-		glClear(GL_COLOR_BUFFER_BIT);
 		
 		switch(game.getState()) {
 		case typeChoose:
@@ -44,24 +43,16 @@ public class RenderHandler {
 		default:
 			break;
 		}
-		
-		GLFW.glfwSwapBuffers(game.getWindowHandle());
 	}
 	
-	public void renderTypeChooseScreen(int mx, int my) {
-		glBegin(GL_QUADS);
-		glVertex2f(-0.5f, 0.5f);
-		glVertex2f(0.5f, 0.5f);
-		glVertex2f(0.5f, -0.5f);
-		glVertex2f(-0.5f, -0.5f);
-		glEnd();
-		//testModel.render();
+	private void renderTypeChooseScreen(int mx, int my) {
+		testModel.render();
 	}
 	
 	public void init() {
 		testModel.init();
-		//Matrix4f pr_matrix = Matrix4f.orthographic(-10.0f, 10.0f, -10.0f * 9.0f / 16.0f, 10.0f * 9.0f / 16.0f, -1.0f, 1.0f);
-	//testModel.getShader().setUniformMat4f("pr_matrix", pr_matrix);
+		Matrix4f pr_matrix = Matrix4f.orthographic(-10.0f, 10.0f, -10.0f * 9.0f / 16.0f, 10.0f * 9.0f / 16.0f, -1.0f, 1.0f);
+		testModel.getShader().setUniformMat4f("pr_matrix", pr_matrix);
 	}
 	
 }

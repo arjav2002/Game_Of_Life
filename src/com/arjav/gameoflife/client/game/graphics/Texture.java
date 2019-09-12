@@ -1,9 +1,9 @@
 package com.arjav.gameoflife.client.game.graphics;
 
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL13.*;
 
 import java.awt.image.BufferedImage;
-import java.io.FileInputStream;
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
@@ -57,5 +57,10 @@ public class Texture {
 	
 	public void unbind() {
 		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+	
+	public void enable(Shader shader) {
+		glActiveTexture(GL_TEXTURE0);
+		shader.setUniform1i("tex", 0);
 	}
 }

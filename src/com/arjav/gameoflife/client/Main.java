@@ -47,11 +47,8 @@ public class Main {
 	}
 	
 	private void connectToServer() {
-		JLabel label = new JLabel("Connecting to server...");
-		frame.getContentPane().add(label);
 		serverCon = new Connect();
 		serverCon.init();
-		frame.getContentPane().remove(label);
 		createAndShowGUI();
 		serverSearchThread = new Thread(new Runnable() {
 			@Override
@@ -64,9 +61,15 @@ public class Main {
 	}
 	
 	private void okButtonCallback(ActionEvent e) {
+		
+		String serverAddr = (String)comboBox.getSelectedItem();
+		if(serverAddr == null || serverAddr.equals("")) {
+			nametextField.setText("No servers online!");
+			return;
+		}
 		String password = new String(passwordField.getPassword());
 		if(!nametextField.getText().equals("") && !password.equals("")) {
-			if(serverCon.requestConnection(nametextField.getText(), password, (String)comboBox.getSelectedItem())) {
+			if(serverCon.requestConnection(nametextField.getText(), password, serverAddr)) {
 				// we can go onto the openGL rendering now
 				if(!GLFW.glfwInit()) {
 					nametextField.setText("Failed to initialise openGL");
