@@ -9,6 +9,7 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.ListIterator;
 import java.util.Scanner;
 
 public class ServerMain {
@@ -16,12 +17,12 @@ public class ServerMain {
 	// ranges for public and local multi cast groups are different
 	public static final String DISCOVERY_MUTLICAST_GROUP = "239.53.63.243"; // arbitrary
 	public static final String REQ_MULTICAST_GROUP = "239.47.52.22"; // arbitrary
-	public static final int MULTICAST_SERVER_PORT = 1134;
-	public static final int MULTICAST_CLIENT_PORT = 5138;
-	public static final int REQ_SEND_CLIENT_PORT = 9107;
-	public static final int REQ_RECEIVE_SERVER_PORT = 9145;
+	public static final int MULTICAST_SERVER_PORT = 1312;
+	public static final int MULTICAST_CLIENT_PORT = 5656;
+	public static final int REQ_SEND_CLIENT_PORT = 9183;
+	public static final int REQ_RECEIVE_SERVER_PORT = 5145;
 	public static final int REQ_RESPONSE_SERVER_PORT = 4913;
-	public static final int RESP_RECEIVE_CLIENT_PORT = 3969;
+	public static final int RESP_RECEIVE_CLIENT_PORT = 6669;
 	
 	private InetAddress localGroup;
 	private InetAddress reqGroup;
@@ -73,19 +74,26 @@ public class ServerMain {
 		}
 	}
 	
-	private void processRequests() {
-		for(ServerPlayer player : playerList) {
+	private synchronized void processRequests() {
+		ListIterator<ServerPlayer> iter = playerList.listIterator();
+		while(iter.hasNext()){
+			ServerPlayer player = null;
+			player = iter.next();
 			String req = player.getAssociatedClient().peekMessage();
 			if(req != null) {
 				if(req.equals("GT")) {
 					if(player.getType() == null) player.getAssociatedClient().sendMessage("null");
 					else player.getAssociatedClient().sendMessage(player.getType().toString());
 				}
+				else if(req.equals("LO")) {
+					iter.remove();
+					player.getAssociatedClient().sendMessage("LoggedOut");
+				}
 			}
 		}
 	}
 	
-	private void joinClient(String info) {
+	private synchronized void joinClient(String info) {
 		String[] clientInfo = info.split(" ");
 		// check if user with username exists in the archives
 		// if yes then load player
@@ -115,6 +123,7 @@ public class ServerMain {
 		}
 		else {
 			playerList.add(new ServerPlayer(0, 0, clientInfo[1], null, c));
+			System.out.println("CLIENT: " + c.getIPAddr() + " added!");
 		}
 	}
 	

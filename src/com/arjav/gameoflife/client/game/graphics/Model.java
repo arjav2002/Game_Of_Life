@@ -27,11 +27,11 @@ public class Model {
 	public void render() {
 		texture.bind();
 		vertArr.bind();
-		shader.enable();
+		//shader.enable();
 		
 		vertArr.draw();
 		
-		shader.disable();
+		//shader.disable();
 		vertArr.unbind();
 		texture.unbind();
 	}

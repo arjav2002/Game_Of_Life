@@ -49,13 +49,19 @@ public class RenderHandler {
 	}
 	
 	public void renderTypeChooseScreen(int mx, int my) {
-		testModel.render();
+		glBegin(GL_QUADS);
+		glVertex2f(-0.5f, 0.5f);
+		glVertex2f(0.5f, 0.5f);
+		glVertex2f(0.5f, -0.5f);
+		glVertex2f(-0.5f, -0.5f);
+		glEnd();
+		//testModel.render();
 	}
 	
 	public void init() {
 		testModel.init();
-		Matrix4f pr_matrix = Matrix4f.orthographic(-10.0f, 10.0f, -10.0f * 9.0f / 16.0f, 10.0f * 9.0f / 16.0f, -1.0f, 1.0f);
-		testModel.getShader().setUniformMat4f("pr_matrix", pr_matrix);
+		//Matrix4f pr_matrix = Matrix4f.orthographic(-10.0f, 10.0f, -10.0f * 9.0f / 16.0f, 10.0f * 9.0f / 16.0f, -1.0f, 1.0f);
+	//testModel.getShader().setUniformMat4f("pr_matrix", pr_matrix);
 	}
 	
 }
