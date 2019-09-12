@@ -13,21 +13,19 @@ public class Matrix4f {
 		
 	}
 	
-	public static Matrix4f identity() {
-		Matrix4f result = new Matrix4f();
+	public void identity() {
 		for (int i = 0; i < SIZE; i++) {
-			result.elements[i] = 0.0f;
+			elements[i] = 0.0f;
 		}
-		result.elements[0 + 0 * 4] = 1.0f;
-		result.elements[1 + 1 * 4] = 1.0f;
-		result.elements[2 + 2 * 4] = 1.0f;
-		result.elements[3 + 3 * 4] = 1.0f;
-		
-		return result;
+		elements[0 + 0 * 4] = 1.0f;
+		elements[1 + 1 * 4] = 1.0f;
+		elements[2 + 2 * 4] = 1.0f;
+		elements[3 + 3 * 4] = 1.0f;
 	}
 	
 	public static Matrix4f orthographic(float left, float right, float bottom, float top, float near, float far) {
-		Matrix4f result = identity();
+		Matrix4f result = new Matrix4f();
+		result.identity();
 		
 		result.elements[0 + 0 * 4] = 2.0f / (right - left);
 
@@ -42,27 +40,23 @@ public class Matrix4f {
 		return result;
 	}
 	
-	public static Matrix4f translate(Vector3f vector) {
-		Matrix4f result = identity();
-		result.elements[0 + 3 * 4] = vector.x;
-		result.elements[1 + 3 * 4] = vector.y;
-		result.elements[2 + 3 * 4] = vector.z;
-		return result;
+	public void translate(Vector3f vector) {
+		elements[0 + 3 * 4] = vector.x;
+		elements[1 + 3 * 4] = vector.y;
+		elements[2 + 3 * 4] = vector.z;
 	}
 	
-	public static Matrix4f rotate(float angle) {
-		Matrix4f result = identity();
+	public void rotate(float angle) {
+		identity();
 		float r = (float) Math.toRadians(angle);
 		float cos = (float) Math.cos(r);
 		float sin = (float) Math.sin(r);
 		
-		result.elements[0 + 0 * 4] = cos;
-		result.elements[1 + 0 * 4] = sin;
+		elements[0 + 0 * 4] = cos;
+		elements[1 + 0 * 4] = sin;
 		
-		result.elements[0 + 1 * 4] = -sin;
-		result.elements[1 + 1 * 4] = cos;
-		
-		return result;
+		elements[0 + 1 * 4] = -sin;
+		elements[1 + 1 * 4] = cos;
 	}
 	
 	public Matrix4f multiply(Matrix4f matrix) {
@@ -78,6 +72,7 @@ public class Matrix4f {
 		}
 		return result;
 	}
+
 	
 	public FloatBuffer toFloatBuffer() {
 		return MyBufferUtils.createFloatBuffer(elements);

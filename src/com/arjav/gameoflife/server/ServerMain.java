@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.ListIterator;
 import java.util.Scanner;
 
+import com.arjav.gameoflife.client.game.Type;
+
 public class ServerMain {
 
 	// ranges for public and local multi cast groups are different
@@ -77,8 +79,7 @@ public class ServerMain {
 	private synchronized void processRequests() {
 		ListIterator<ServerPlayer> iter = playerList.listIterator();
 		while(iter.hasNext()){
-			ServerPlayer player = null;
-			player = iter.next();
+			ServerPlayer player = iter.next();
 			String req = player.getAssociatedClient().peekMessage();
 			if(req != null) {
 				if(req.equals("GT")) {
@@ -88,6 +89,10 @@ public class ServerMain {
 				else if(req.equals("LO")) {
 					iter.remove();
 					player.getAssociatedClient().sendMessage("LoggedOut");
+				}
+				else if(req.startsWith("ST")) {
+					String type = req.split(" ")[1];
+					player.setType(Type.valueOf(type));
 				}
 			}
 		}
@@ -99,18 +104,21 @@ public class ServerMain {
 		// if yes then load player
 		// else generate new player
 		String[] regUser = userIsRegistered(clientInfo[1]);
-		
+		Client c = new Client(clientInfo[0], clientInfo[1], clientInfo[2]);
+		ServerPlayer newPlayer;
 		if(regUser != null) {
 			if(!regUser[1].equals(clientInfo[2])) {
 				NetUtils.sendMessage(reqResponseSocket, clientInfo[0] + " IP", reqGroup, RESP_RECEIVE_CLIENT_PORT);
 				// incorrect password
 				return;
 			}
+			else {
+				newPlayer = new ServerPlayer(Integer.parseInt(regUser[2]), Integer.parseInt(regUser[3]), clientInfo[1], Type.valueOf(regUser[4]), c);
+			}
 		} else {
 			registeredUsers.add(new String[] {clientInfo[1], clientInfo[2], ""});
+			newPlayer = new ServerPlayer(0, 0, clientInfo[1], null, c);
 		}
-		
-		Client c = new Client(clientInfo[0], clientInfo[1], clientInfo[2]);
 		
 		NetUtils.sendMessage(reqResponseSocket, clientInfo[0] + " CP " + c.getServerSocket().getLocalPort(), reqGroup, RESP_RECEIVE_CLIENT_PORT);
 		// correct password, here's your dedicated port, client
@@ -122,8 +130,7 @@ public class ServerMain {
 			System.out.println("Client " + c.getIPAddr() + " was not able to initialise");
 		}
 		else {
-			playerList.add(new ServerPlayer(0, 0, clientInfo[1], null, c));
-			System.out.println("CLIENT: " + c.getIPAddr() + " added!");
+			playerList.add(newPlayer);
 		}
 	}
 	
@@ -206,8 +213,7 @@ public class ServerMain {
 		Scanner sc = null;
 		sc = new Scanner(getClass().getResourceAsStream("/Users.txt"));
 		while(sc.hasNextLine()) {
-			String[] tokens = sc.nextLine().split(" ");
-			registeredUsers.add(new String[] {tokens[0], tokens[1], tokens[2]});
+			registeredUsers.add(sc.nextLine().split(" "));
 		}
 		sc.close();
 	}

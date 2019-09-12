@@ -1,33 +1,18 @@
 package com.arjav.gameoflife.client.game.graphics;
 
-import org.lwjgl.glfw.GLFW;
-
 import com.arjav.gameoflife.client.game.Game;
+import com.arjav.gameoflife.client.game.ui.Button;
 import com.arjav.gameoflife.maths.Matrix4f;
-
-import static org.lwjgl.opengl.GL11.*;
 
 public class RenderHandler {
 	
 	private Game game;
-	private Model testModel;
 	
 	public RenderHandler(Game game) {
 		this.game = game;
-		testModel = new Model("shaders/vertex.shd", "shaders/fragment.shd", "/swag.png", new float[] {
-				-1.0f, 1.0f, 1.0f,
-				1.0f, 1.0f, 1.0f,
-				1.0f, -1.0f, 1.0f,
-				-1.0f, -1.0f, 1.0f
-		}, new byte[] {
-				3, 1, 0,
-				3, 2, 1
-		}, new float[] {
-				0.0f, 1.0f,
-				1.0f, 1.0f,
-				1.0f, 0.0f,
-				0.0f, 0.0f
-		});
+		game.sniperChoose = new Button("shaders/vertex.shd", "shaders/fragment.shd", "/sniper.png", game.getWidth()/7, game.getHeight()/2-game.getHeight()/6, game.getWidth()/7, game.getHeight()/3);
+		game.juggernautChoose = new Button("shaders/vertex.shd", "shaders/fragment.shd", "/juggernaut.png", 3*game.getWidth()/7, game.getHeight()/2-game.getHeight()/6, game.getWidth()/7, game.getHeight()/3);
+		game.medicChoose = new Button("shaders/vertex.shd", "shaders/fragment.shd", "/medic.png", 5*game.getWidth()/7, game.getHeight()/2-game.getHeight()/6, game.getWidth()/7, game.getHeight()/3);
 	}
 	
 	public void render() {
@@ -46,13 +31,20 @@ public class RenderHandler {
 	}
 	
 	private void renderTypeChooseScreen(int mx, int my) {
-		testModel.render();
+		game.sniperChoose.render();
+		game.juggernautChoose.render();
+		game.medicChoose.render();
 	}
 	
 	public void init() {
-		testModel.init();
-		Matrix4f pr_matrix = Matrix4f.orthographic(-10.0f, 10.0f, -10.0f * 9.0f / 16.0f, 10.0f * 9.0f / 16.0f, -1.0f, 1.0f);
-		testModel.getShader().setUniformMat4f("pr_matrix", pr_matrix);
+		Matrix4f pr_matrix = Matrix4f.orthographic(0, game.getWidth(), game.getWidth() * 9.0f / 16.0f, 0, -1.0f, 1.0f);
+		Matrix4f trans_mat = new Matrix4f();
+		trans_mat.identity();
+
+		game.sniperChoose.init(pr_matrix, trans_mat);
+		game.juggernautChoose.init(pr_matrix, trans_mat);
+		game.medicChoose.init(pr_matrix, trans_mat);
+		
 	}
 	
 }

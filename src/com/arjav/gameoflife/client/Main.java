@@ -35,7 +35,7 @@ public class Main {
 	private Connect serverCon;
 	private JFrame frame;;
 	private Thread serverSearchThread;
-	private static final int WINDOW_SIZE = 40;
+	private static final int WINDOW_SIZE = 69;
 	
 	private Main(String title, int width, int height) {
 		frame = new JFrame(title);
