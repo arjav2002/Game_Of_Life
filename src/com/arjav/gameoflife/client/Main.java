@@ -84,7 +84,7 @@ public class Main {
 						e1.printStackTrace();
 					}
 					try {
-						Game game = new Game("The Game of Life!", 16*WINDOW_SIZE, 9*WINDOW_SIZE, serverCon);
+						Game game = new Game("The Game of Life!", 16*WINDOW_SIZE, 9*WINDOW_SIZE, serverCon, nametextField.getText());
 						frame.setVisible(false);
 						// frame.dispose(); //TODO why is this causing an error
 						// if this is called after glfwInit, it causes a BadWindow error

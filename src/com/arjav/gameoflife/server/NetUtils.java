@@ -10,6 +10,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 
 public class NetUtils {
 	
@@ -20,7 +21,6 @@ public class NetUtils {
 		try {
 			socket.receive(pkt);
 		} catch (IOException e) {
-			e.printStackTrace();
 		}
 		msg = new String(pkt.getData(), pkt.getOffset(), pkt.getLength());
 		return msg;

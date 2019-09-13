@@ -4,13 +4,14 @@ layout (location = 0) in vec4 position;
 layout (location = 1) in vec2 texCoords;
 
 uniform mat4 pr_matrix;
-uniform mat4 trans_matrix;
+uniform mat4 camera_matrix;
+uniform mat4 model_matrix;
 
 out DATA {
 	vec2 texCoords;
 } vs_out;
 
 void main() {
-	gl_Position = pr_matrix * trans_matrix * position;
+	gl_Position = pr_matrix * camera_matrix * model_matrix * position;
 	vs_out.texCoords = texCoords;
 }

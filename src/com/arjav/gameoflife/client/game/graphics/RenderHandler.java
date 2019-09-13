@@ -10,16 +10,13 @@ public class RenderHandler {
 	
 	public RenderHandler(Game game) {
 		this.game = game;
-		game.sniperChoose = new Button("shaders/vertex.shd", "shaders/fragment.shd", "/sniper.png", game.getWidth()/7, game.getHeight()/2-game.getHeight()/6, game.getWidth()/7, game.getHeight()/3);
-		game.juggernautChoose = new Button("shaders/vertex.shd", "shaders/fragment.shd", "/juggernaut.png", 3*game.getWidth()/7, game.getHeight()/2-game.getHeight()/6, game.getWidth()/7, game.getHeight()/3);
-		game.medicChoose = new Button("shaders/vertex.shd", "shaders/fragment.shd", "/medic.png", 5*game.getWidth()/7, game.getHeight()/2-game.getHeight()/6, game.getWidth()/7, game.getHeight()/3);
 	}
 	
 	public void render() {
 		
 		switch(game.getState()) {
 		case typeChoose:
-			renderTypeChooseScreen(game.getEventHandler().getMx(), game.getEventHandler().getMy());
+			game.getTypeChooseScreen().render(game.getCamera().getViewMatrix());
 			break;
 		case lobby:
 			break;
@@ -30,21 +27,19 @@ public class RenderHandler {
 		}
 	}
 	
-	private void renderTypeChooseScreen(int mx, int my) {
-		game.sniperChoose.render();
-		game.juggernautChoose.render();
-		game.medicChoose.render();
-	}
-	
 	public void init() {
 		Matrix4f pr_matrix = Matrix4f.orthographic(0, game.getWidth(), game.getWidth() * 9.0f / 16.0f, 0, -1.0f, 1.0f);
-		Matrix4f trans_mat = new Matrix4f();
-		trans_mat.identity();
-
-		game.sniperChoose.init(pr_matrix, trans_mat);
-		game.juggernautChoose.init(pr_matrix, trans_mat);
-		game.medicChoose.init(pr_matrix, trans_mat);
-		
+		switch(game.getState()) {
+		case typeChoose:
+			game.getTypeChooseScreen().init(pr_matrix);
+			break;
+		case lobby:
+			
+			break;
+		case onTask:
+			
+			break;
+		}
 	}
 	
 }

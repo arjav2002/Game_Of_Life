@@ -19,12 +19,12 @@ public class ServerMain {
 	// ranges for public and local multi cast groups are different
 	public static final String DISCOVERY_MUTLICAST_GROUP = "239.53.63.243"; // arbitrary
 	public static final String REQ_MULTICAST_GROUP = "239.47.52.22"; // arbitrary
-	public static final int MULTICAST_SERVER_PORT = 1312;
-	public static final int MULTICAST_CLIENT_PORT = 5656;
-	public static final int REQ_SEND_CLIENT_PORT = 9183;
+	public static final int MULTICAST_SERVER_PORT = 1532;
+	public static final int MULTICAST_CLIENT_PORT = 5626;
+	public static final int REQ_SEND_CLIENT_PORT = 9186;
 	public static final int REQ_RECEIVE_SERVER_PORT = 5145;
-	public static final int REQ_RESPONSE_SERVER_PORT = 4913;
-	public static final int RESP_RECEIVE_CLIENT_PORT = 6669;
+	public static final int REQ_RESPONSE_SERVER_PORT = 8913;
+	public static final int RESP_RECEIVE_CLIENT_PORT = 2669;
 	
 	private InetAddress localGroup;
 	private InetAddress reqGroup;
@@ -36,11 +36,12 @@ public class ServerMain {
 	
 	private Thread publicReqProcessThread;
 	private Thread privateReqProcessThread;
+	private Thread readCommands;
 	
-	private volatile ArrayList<ServerPlayer> playerList;
+	private volatile ArrayList<PlayerRecord> playerList;
 	private volatile ArrayList<String[]> registeredUsers;
 	
-	private volatile boolean running = false;
+	private boolean running = false;
 	
 	private ServerMain() {
 		try {
@@ -49,7 +50,7 @@ public class ServerMain {
 			registeredUsers = new ArrayList<String[]>();
 			readRegisteredUsers();
 			serverAddr = InetAddress.getLocalHost();
-			playerList = new ArrayList<ServerPlayer>();
+			playerList = new ArrayList<PlayerRecord>();
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
@@ -60,6 +61,7 @@ public class ServerMain {
 			broadcastSocket = new DatagramSocket(MULTICAST_SERVER_PORT);
 			reqReceiveSocket = new MulticastSocket(REQ_RECEIVE_SERVER_PORT);
 			reqReceiveSocket.joinGroup(reqGroup);
+			reqReceiveSocket.setSoTimeout(100);
 			reqResponseSocket = new DatagramSocket(REQ_RESPONSE_SERVER_PORT);
 			running = true;
 			createAndStartReqProcessThread();
@@ -71,15 +73,32 @@ public class ServerMain {
 				}
 			});
 			privateReqProcessThread.start();
+			
+			readCommands = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					Scanner sc = new Scanner(System.in);
+					while(running) {
+						String command = sc.nextLine();
+						switch(command) {
+						case "exit":
+							running = false;
+							break;
+						}
+					}
+					sc.close();
+				}
+			});
+			readCommands.start();
 		} catch(IOException e) {
 			e.printStackTrace();
 		}
 	}
 	
 	private synchronized void processRequests() {
-		ListIterator<ServerPlayer> iter = playerList.listIterator();
+		ListIterator<PlayerRecord> iter = playerList.listIterator();
 		while(iter.hasNext()){
-			ServerPlayer player = iter.next();
+			PlayerRecord player = iter.next();
 			String req = player.getAssociatedClient().peekMessage();
 			if(req != null) {
 				if(req.equals("GT")) {
@@ -93,6 +112,7 @@ public class ServerMain {
 				else if(req.startsWith("ST")) {
 					String type = req.split(" ")[1];
 					player.setType(Type.valueOf(type));
+					getRegisteredUserTokens(player.getName())[2] = type;
 				}
 			}
 		}
@@ -105,7 +125,7 @@ public class ServerMain {
 		// else generate new player
 		String[] regUser = userIsRegistered(clientInfo[1]);
 		Client c = new Client(clientInfo[0], clientInfo[1], clientInfo[2]);
-		ServerPlayer newPlayer;
+		PlayerRecord newPlayer;
 		if(regUser != null) {
 			if(!regUser[1].equals(clientInfo[2])) {
 				NetUtils.sendMessage(reqResponseSocket, clientInfo[0] + " IP", reqGroup, RESP_RECEIVE_CLIENT_PORT);
@@ -113,11 +133,11 @@ public class ServerMain {
 				return;
 			}
 			else {
-				newPlayer = new ServerPlayer(Integer.parseInt(regUser[2]), Integer.parseInt(regUser[3]), clientInfo[1], Type.valueOf(regUser[4]), c);
+				newPlayer = new PlayerRecord(0, 0, clientInfo[1], Type.valueOf(regUser[2]), c);
 			}
 		} else {
-			registeredUsers.add(new String[] {clientInfo[1], clientInfo[2], ""});
-			newPlayer = new ServerPlayer(0, 0, clientInfo[1], null, c);
+			registeredUsers.add(new String[] {clientInfo[1], clientInfo[2], "null"});
+			newPlayer = new PlayerRecord(0, 0, clientInfo[1], null, c);
 		}
 		
 		NetUtils.sendMessage(reqResponseSocket, clientInfo[0] + " CP " + c.getServerSocket().getLocalPort(), reqGroup, RESP_RECEIVE_CLIENT_PORT);
@@ -191,7 +211,7 @@ public class ServerMain {
 		try {
 			reqReceiveSocket.close();
 			reqResponseSocket.close();
-			PrintWriter pw = new PrintWriter(new FileWriter(new File("/Users.txt")));
+			PrintWriter pw = new PrintWriter(new FileWriter(new File(getClass().getResource("/Users.txt").getPath())));
 			for(String[] tokens : registeredUsers) {
 				String line = "";
 				for(String token : tokens) {
@@ -200,13 +220,14 @@ public class ServerMain {
 				pw.println(line);
 			}
 			pw.close();
-			for(ServerPlayer player : playerList) {
+			for(PlayerRecord player : playerList) {
 				player.getAssociatedClient().getServerSocket().close();
 				player.getAssociatedClient().getSocket().close();
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		System.exit(0);
 	}
 	
 	private void readRegisteredUsers() {
@@ -234,6 +255,15 @@ public class ServerMain {
 			}
 		}
 		return arr;
+	}
+	
+	private String[] getRegisteredUserTokens(String username) {
+		
+		for(String[] tokens : registeredUsers) {
+			if(tokens[0].equals(username)) return tokens;
+		}
+		
+		return null;
 	}
 	
 }

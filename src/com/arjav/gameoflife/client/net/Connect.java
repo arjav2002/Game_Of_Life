@@ -12,6 +12,7 @@ import java.util.ArrayList;
 
 import javax.swing.DefaultComboBoxModel;
 
+import com.arjav.gameoflife.client.glutils.FileUtils;
 import com.arjav.gameoflife.server.NetUtils;
 import com.arjav.gameoflife.server.ServerMain;
 
@@ -104,7 +105,9 @@ public class Connect {
 	public String getMessage() {
 		String msg = "";
 		try {
-			while(msg == null || msg.isBlank()) msg = br.readLine();
+			while(FileUtils.isEmpty(msg)) {
+				msg = br.readLine();
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

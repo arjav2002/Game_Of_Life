@@ -1,48 +1,22 @@
 package com.arjav.gameoflife.client.game.ui;
 
+import com.arjav.gameoflife.client.game.entities.Entity;
 import com.arjav.gameoflife.client.game.graphics.Model;
 import com.arjav.gameoflife.maths.Matrix4f;
+import com.arjav.gameoflife.maths.Vector3f;
 
-public class Button {
+public class Button extends Entity {
 	
-	private Model model;
-	private int x, y, width, height;
-	
-	public Button(String vertexShader, String fragmentShader, String texturePath, int x, int y, int width, int height) {
-		model = new Model(vertexShader, fragmentShader, texturePath, new float[] {
-					x, y, 1.0f,
-					x + width, y, 1.0f,
-					x + width, y+height, 1.0f,
-					x, y+height, 1.0f
-				},
-				new byte[] {
-					0, 1, 3,
-					1, 2, 3
-				},
-				new float[] {
-					0.0f, 0.0f,
-					1.0f, 0.0f,
-					1.0f, 1.0f,
-					0.0f, 1.0f	
-				});
-		this.x = x;
-		this.y = y;
-		this.width = width;
-		this.height = height;
+	public Button(String texturePath, int x, int y, int width, int height) {
+		super(texturePath, new Vector3f(x, y, 1.0f), width, height);
 	}
 	
-	public void render() {
-		model.render();
-	}
-	
-	public void init(Matrix4f pr_matrix, Matrix4f trans_matrix) {
+	public void init(Matrix4f pr_matrix, Matrix4f camera_matrix, Matrix4f model_matrix) {
 		model.init();
-		model.getShader().setUniformMat4f("pr_matrix", pr_matrix);
-		model.getShader().setUniformMat4f("trans_matrix", trans_matrix);
 	}
 	
 	public boolean isInBounds(int mx, int my) {
-		return mx > x && mx < x + width && my > y && my < y + height;
+		return mx > position.x && mx < position.x + width && my > position.y && my < position.y + height;
 	}
 	
 	public Model getModel() {

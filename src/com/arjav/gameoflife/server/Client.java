@@ -7,6 +7,8 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import com.arjav.gameoflife.client.glutils.FileUtils;
+
 public class Client {
 	
 	private String IPaddr; // client's IP address
@@ -58,7 +60,9 @@ public class Client {
 	public String getMessage() {
 		String msg = "";
 		try {
-			while(msg == null || msg.isBlank()) msg = br.readLine();
+			while(FileUtils.isEmpty(msg)) {
+				msg = br.readLine();
+			}
 		} catch (IOException e) {
 			System.err.println("Not able to get message for client: " + IPaddr);
 			e.printStackTrace();

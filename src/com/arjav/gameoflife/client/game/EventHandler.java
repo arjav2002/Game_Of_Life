@@ -41,9 +41,7 @@ public class EventHandler {
 	public void onLeftMousePress() {
 		switch(game.getState()) {
 		case typeChoose:
-			if(game.juggernautChoose.isInBounds(mx, my)) game.setType(Type.juggernaut);
-			else if(game.sniperChoose.isInBounds(mx, my)) game.setType(Type.sniper);
-			else if(game.medicChoose.isInBounds(mx, my)) game.setType(Type.medic);
+			game.getTypeChooseScreen().leftMousePress(mx, my);
 			break;
 		case lobby:
 			

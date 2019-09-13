@@ -8,8 +8,8 @@ public class ShaderUtils {
 	}
 	
 	public static int load(String vertPath, String fragPath) {
-		String vert = FileUtils.loadAsString(vertPath); 
-		String frag = FileUtils.loadAsString(fragPath);
+		String vert = new FileUtils().loadFromClassFolder(vertPath); 
+		String frag = new FileUtils().loadFromClassFolder(fragPath);
 		return create(vert, frag);
 	}
 	

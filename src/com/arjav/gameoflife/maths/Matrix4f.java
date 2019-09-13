@@ -7,10 +7,10 @@ import com.arjav.gameoflife.client.glutils.MyBufferUtils;
 public class Matrix4f {
 	
 	public static final int SIZE = 4 * 4;
-	public float[] elements = new float[SIZE];
+	public float[] elements;
 	
 	public Matrix4f() {
-		
+		elements = new float[SIZE];
 	}
 	
 	public void identity() {
