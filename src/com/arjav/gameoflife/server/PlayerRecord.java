@@ -4,21 +4,15 @@ import com.arjav.gameoflife.client.game.Type;
 
 public class PlayerRecord {
 
-	private Client associatedClient;
 	private int x, y;
 	private String name;
 	private Type type;
 	
-	public PlayerRecord(int x, int y, String name, Type type, Client associatedClient) {
-		this.associatedClient = associatedClient;
+	public PlayerRecord(int x, int y, String name, Type type) {
 		this.x = x;
 		this.y = y;
 		this.name = name;
 		this.type = type;
-	}
-	
-	public Client getAssociatedClient() {
-		return associatedClient;
 	}
 	
 	public Type getType() {

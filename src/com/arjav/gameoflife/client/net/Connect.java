@@ -3,6 +3,8 @@ package com.arjav.gameoflife.client.net;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -26,6 +28,8 @@ public class Connect {
 	private InetAddress reqGroup;
 	private BufferedReader br;
 	private PrintWriter pw;
+	private ObjectInputStream ois;
+	private ObjectOutputStream oos;
 	private volatile boolean searchForServers = false;
 	
 	public void init() {
@@ -57,6 +61,8 @@ public class Connect {
 			dedicatedSocket = new Socket(serverAddr, Integer.parseInt(tokens[2]));
 			br = new BufferedReader(new InputStreamReader(dedicatedSocket.getInputStream()));
 			pw = new PrintWriter(dedicatedSocket.getOutputStream());
+			oos = new ObjectOutputStream(dedicatedSocket.getOutputStream());
+			ois = new ObjectInputStream(dedicatedSocket.getInputStream());
 		} catch (NumberFormatException | IOException e) {
 			System.err.println("not able to initialise sockets");
 			e.printStackTrace();
@@ -102,6 +108,17 @@ public class Connect {
 		pw.flush();
 	}
 	
+	public void sendObject(Object obj) {
+		try {
+			String msg = getMessage();
+			while(msg == null || !msg.equals("SEND"));
+			oos.writeObject(obj);
+		} catch (IOException e) {
+			System.err.println("Not able to send object to server");
+			e.printStackTrace();
+		}
+	}
+	
 	public String getMessage() {
 		String msg = "";
 		try {
@@ -112,6 +129,20 @@ public class Connect {
 			e.printStackTrace();
 		}
 		return msg;
+	}
+	
+	public Object getObject() {
+		Object obj = null;
+		try {
+			sendMessage("SEND");
+			while(obj == null) {
+				obj = ois.readObject();				
+			}
+		} catch (ClassNotFoundException | IOException e) {
+			System.err.println("Not able to read objects from server");
+			e.printStackTrace();
+		}
+		return obj;
 	}
 	
 	public void searchForServers(boolean searchForServers) {

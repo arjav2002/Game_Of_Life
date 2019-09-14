@@ -5,7 +5,7 @@ import com.arjav.gameoflife.client.game.Type;
 
 public class Player extends Entity {
 	
-	public static final int WIDTH = 32, HEIGHT = 64;
+	public static final int WIDTH = 64, HEIGHT = 128;
 
 	private Type type;
 	private String name;
@@ -26,5 +26,25 @@ public class Player extends Entity {
 	
 	public void setType(Type type) {
 		this.type = type;
+	}
+	
+	public void setX(int x) {
+		position.x = x;
+	}
+	
+	public void setY(int y) {
+		position.y = y;
+	}
+	
+	public static String getTexture(Type soldierType) {
+		switch(soldierType) {
+		case juggernaut:
+			return "/juggernaut_body.png";
+		case medic:
+			return "/medic_body.png";
+		case sniper:
+			return "/sniper_body.png";
+		}
+		return "NULL TEXTURE";
 	}
 }

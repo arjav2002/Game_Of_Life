@@ -3,6 +3,8 @@ package com.arjav.gameoflife.server;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -18,6 +20,8 @@ public class Client {
 	private String password;
 	private BufferedReader br;
 	private PrintWriter pw;
+	private ObjectOutputStream oos;
+	private ObjectInputStream ois;
 	
 	public Client(String IPaddr, String username, String password) {
 		this.IPaddr = IPaddr;
@@ -36,6 +40,8 @@ public class Client {
 			socket = serverSock.accept();
 			br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			pw = new PrintWriter(socket.getOutputStream());
+			oos = new ObjectOutputStream(socket.getOutputStream());
+			ois = new ObjectInputStream(socket.getInputStream());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -44,6 +50,31 @@ public class Client {
 	public void sendMessage(String msg) {
 		pw.println(msg);
 		pw.flush();
+	}
+	
+	public void sendObject(Object obj) {
+		try {
+			String msg = getMessage();
+			while(msg == null || !msg.equals("SEND"));
+			oos.writeObject(obj);
+		} catch (IOException e) {
+			System.err.println("Not able to send object to server");
+			e.printStackTrace();
+		}
+	}
+	
+	public Object getObject() {
+		Object obj = null;
+		try {
+			sendMessage("SEND");
+			while(obj == null) {
+				obj = ois.readObject();				
+			}
+		} catch (ClassNotFoundException | IOException e) {
+			System.err.println("Not able to read objects from server");
+			e.printStackTrace();
+		}
+		return obj;
 	}
 	
 	public String peekMessage() {

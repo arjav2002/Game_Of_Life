@@ -41,9 +41,9 @@ public class Matrix4f {
 	}
 	
 	public void translate(Vector3f vector) {
-		elements[0 + 3 * 4] = vector.x;
-		elements[1 + 3 * 4] = vector.y;
-		elements[2 + 3 * 4] = vector.z;
+		elements[0 + 3 * 4] = -vector.x;
+		elements[1 + 3 * 4] = -vector.y;
+		elements[2 + 3 * 4] = -vector.z;
 	}
 	
 	public void rotate(float angle) {

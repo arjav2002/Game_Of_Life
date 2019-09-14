@@ -9,22 +9,27 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.Scanner;
 
 import com.arjav.gameoflife.client.game.Type;
+import com.arjav.gameoflife.client.game.entities.BuildingType;
+import com.arjav.gameoflife.client.glutils.FileUtils;
 
 public class ServerMain {
 
 	// ranges for public and local multi cast groups are different
 	public static final String DISCOVERY_MUTLICAST_GROUP = "239.53.63.243"; // arbitrary
 	public static final String REQ_MULTICAST_GROUP = "239.47.52.22"; // arbitrary
-	public static final int MULTICAST_SERVER_PORT = 1532;
-	public static final int MULTICAST_CLIENT_PORT = 5626;
-	public static final int REQ_SEND_CLIENT_PORT = 9186;
-	public static final int REQ_RECEIVE_SERVER_PORT = 5145;
-	public static final int REQ_RESPONSE_SERVER_PORT = 8913;
-	public static final int RESP_RECEIVE_CLIENT_PORT = 2669;
+	public static final int MULTICAST_SERVER_PORT = 1536;
+	public static final int MULTICAST_CLIENT_PORT = 5764;
+	public static final int REQ_SEND_CLIENT_PORT = 9134;
+	public static final int REQ_RECEIVE_SERVER_PORT = 3145;
+	public static final int REQ_RESPONSE_SERVER_PORT = 6913;
+	public static final int RESP_RECEIVE_CLIENT_PORT = 7669;
 	
 	private InetAddress localGroup;
 	private InetAddress reqGroup;
@@ -38,8 +43,14 @@ public class ServerMain {
 	private Thread privateReqProcessThread;
 	private Thread readCommands;
 	
-	private volatile ArrayList<PlayerRecord> playerList;
+	private volatile ArrayList<ServerPlayer> playerList;
+	private volatile Map<String, PlayerRecord> playerRecords;
+	// reason to create is so that a cast is not required each time a certain player needs to be sent
 	private volatile ArrayList<String[]> registeredUsers;
+	
+	private ArrayList<BuildingRecord> buildingRecords;
+	
+	private int remainingSurvivors, supplies, housingCapacity, leftEnd, rightEnd;
 	
 	private boolean running = false;
 	
@@ -48,9 +59,15 @@ public class ServerMain {
 			localGroup = InetAddress.getByName(DISCOVERY_MUTLICAST_GROUP);
 			reqGroup = InetAddress.getByName(REQ_MULTICAST_GROUP);
 			registeredUsers = new ArrayList<String[]>();
+			buildingRecords = new ArrayList<BuildingRecord>();
 			readRegisteredUsers();
+			readBuildings();
+			remainingSurvivors = registeredUsers.size();
+			supplies = 0;
+			housingCapacity = 0;
 			serverAddr = InetAddress.getLocalHost();
-			playerList = new ArrayList<PlayerRecord>();
+			playerList = new ArrayList<ServerPlayer>();
+			playerRecords = new HashMap<String, PlayerRecord>();
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
@@ -96,9 +113,9 @@ public class ServerMain {
 	}
 	
 	private synchronized void processRequests() {
-		ListIterator<PlayerRecord> iter = playerList.listIterator();
+		ListIterator<ServerPlayer> iter = playerList.listIterator();
 		while(iter.hasNext()){
-			PlayerRecord player = iter.next();
+			ServerPlayer player = iter.next();
 			String req = player.getAssociatedClient().peekMessage();
 			if(req != null) {
 				if(req.equals("GT")) {
@@ -114,6 +131,23 @@ public class ServerMain {
 					player.setType(Type.valueOf(type));
 					getRegisteredUserTokens(player.getName())[2] = type;
 				}
+				else if(req.startsWith("GW")) {
+					player.getAssociatedClient().sendMessage(buildingRecords.size() + " " + leftEnd + " " + rightEnd);
+					for(BuildingRecord building : buildingRecords) {
+						player.getAssociatedClient().sendObject(building);
+					}
+				}
+				else if(req.startsWith("TICK")) {
+					PlayerRecord playerReceived = (PlayerRecord) player.getAssociatedClient().getObject();
+					player.getAssociatedClient().sendMessage("" + (playerRecords.size()-1));
+					Iterator<String> iterator = playerRecords.keySet().iterator();
+					for(int i = 0; i < playerRecords.size(); i++) {
+						PlayerRecord record = playerRecords.get(iterator.next());
+						if(record.getName().equals(playerReceived.getName())) record = playerReceived;
+						else player.getAssociatedClient().sendObject(record);
+					}
+				}
+				
 			}
 		}
 	}
@@ -125,7 +159,7 @@ public class ServerMain {
 		// else generate new player
 		String[] regUser = userIsRegistered(clientInfo[1]);
 		Client c = new Client(clientInfo[0], clientInfo[1], clientInfo[2]);
-		PlayerRecord newPlayer;
+		ServerPlayer newPlayer;
 		if(regUser != null) {
 			if(!regUser[1].equals(clientInfo[2])) {
 				NetUtils.sendMessage(reqResponseSocket, clientInfo[0] + " IP", reqGroup, RESP_RECEIVE_CLIENT_PORT);
@@ -133,11 +167,15 @@ public class ServerMain {
 				return;
 			}
 			else {
-				newPlayer = new PlayerRecord(0, 0, clientInfo[1], Type.valueOf(regUser[2]), c);
+				newPlayer = new ServerPlayer(0, 0, clientInfo[1], Type.valueOf(regUser[2]), c);
 			}
 		} else {
+			if(remainingSurvivors >= housingCapacity) {
+				NetUtils.sendMessage(reqResponseSocket, clientInfo[0] + " NS", reqGroup, RESP_RECEIVE_CLIENT_PORT);
+			}
 			registeredUsers.add(new String[] {clientInfo[1], clientInfo[2], "null"});
-			newPlayer = new PlayerRecord(0, 0, clientInfo[1], null, c);
+			remainingSurvivors++;
+			newPlayer = new ServerPlayer(0, 0, clientInfo[1], null, c);
 		}
 		
 		NetUtils.sendMessage(reqResponseSocket, clientInfo[0] + " CP " + c.getServerSocket().getLocalPort(), reqGroup, RESP_RECEIVE_CLIENT_PORT);
@@ -151,6 +189,7 @@ public class ServerMain {
 		}
 		else {
 			playerList.add(newPlayer);
+			playerRecords.put(newPlayer.getName(), (PlayerRecord)newPlayer);
 		}
 	}
 	
@@ -220,7 +259,7 @@ public class ServerMain {
 				pw.println(line);
 			}
 			pw.close();
-			for(PlayerRecord player : playerList) {
+			for(ServerPlayer player : playerList) {
 				player.getAssociatedClient().getServerSocket().close();
 				player.getAssociatedClient().getSocket().close();
 			}
@@ -235,8 +274,34 @@ public class ServerMain {
 		sc = new Scanner(getClass().getResourceAsStream("/Users.txt"));
 		while(sc.hasNextLine()) {
 			registeredUsers.add(sc.nextLine().split(" "));
+			remainingSurvivors++;
 		}
 		sc.close();
+	}
+	
+	private void readBuildings() {
+		String[] lines = new FileUtils().loadFromClassFolder("/World.txt").split("\n");
+		String[] endings = lines[lines.length-1].split(" ");
+		leftEnd = Integer.parseInt(endings[0]);
+		rightEnd = Integer.parseInt(endings[1]);
+		for(int i = 0; i < lines.length - 1; i++) {
+			String[] tokens = lines[i].split(" ");
+			buildingRecords.add(new BuildingRecord(BuildingType.valueOf(tokens[0]), Integer.parseInt(tokens[1]), Integer.parseInt(tokens[2])));
+			supplies += Integer.parseInt(tokens[2]);
+			switch(BuildingType.valueOf(tokens[0])) {
+			case apartment:
+				housingCapacity += 10;
+				break;
+			case hospital:
+				housingCapacity += 5;
+				break;
+			case police:
+				housingCapacity += 3;
+				break;
+			case farm:
+				housingCapacity += 2;
+			}
+		}
 	}
 	
 	public static void main(String[] args) {

@@ -1,7 +1,6 @@
 package com.arjav.gameoflife.client.game.graphics;
 
 import com.arjav.gameoflife.client.game.Game;
-import com.arjav.gameoflife.client.game.ui.Button;
 import com.arjav.gameoflife.maths.Matrix4f;
 
 public class RenderHandler {
@@ -16,9 +15,10 @@ public class RenderHandler {
 		
 		switch(game.getState()) {
 		case typeChoose:
-			game.getTypeChooseScreen().render(game.getCamera().getViewMatrix());
+			game.getTypeChooseScreen().render(game.getCamera());
 			break;
 		case lobby:
+			game.getLobby().render(game.getCamera());
 			break;
 		case onTask:
 			break;
@@ -34,7 +34,7 @@ public class RenderHandler {
 			game.getTypeChooseScreen().init(pr_matrix);
 			break;
 		case lobby:
-			
+			game.getLobby().init(pr_matrix);
 			break;
 		case onTask:
 			

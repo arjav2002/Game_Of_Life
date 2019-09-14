@@ -2,6 +2,7 @@ package com.arjav.gameoflife.client.game;
 
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWCursorPosCallback;
+import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.glfw.GLFWMouseButtonCallback;
 
 public class EventHandler {
@@ -10,6 +11,7 @@ public class EventHandler {
 	private boolean[] keys;
 	private static final int N_KEYS = 512;
 	private Game game;
+	int x = 0;
 	
 	public EventHandler(Game game) {
 		keys = new boolean[N_KEYS];
@@ -30,6 +32,14 @@ public class EventHandler {
 				}
 			}
 			
+		});
+		GLFW.glfwSetKeyCallback(game.getWindowHandle(), new GLFWKeyCallback() {
+			@Override
+			public void invoke(long window, int key, int scancode, int action, int mods) {
+				x += 5;
+				game.getCamera().setTranslate(x);
+				System.out.println(x);
+			}
 		});
 	}
 	

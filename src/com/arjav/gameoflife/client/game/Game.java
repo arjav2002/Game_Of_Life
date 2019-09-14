@@ -12,6 +12,8 @@ import com.arjav.gameoflife.client.game.entities.Player;
 import com.arjav.gameoflife.client.game.graphics.RenderHandler;
 import com.arjav.gameoflife.client.game.graphics.Window;
 import com.arjav.gameoflife.client.game.graphics.WindowNotCreatedException;
+import com.arjav.gameoflife.client.game.ui.GameState;
+import com.arjav.gameoflife.client.game.ui.Lobby;
 import com.arjav.gameoflife.client.game.ui.TypeChooseScreen;
 import com.arjav.gameoflife.client.net.Connect;
 
@@ -20,15 +22,19 @@ public class Game implements Runnable {
 	private Window window;
 	private Connect connect;
 	private State st;
-	private Player player;
+	private Type soldierType;
+	private String username;
 	private GLFWVidMode videoMode;
 	private Thread myThread;
 	private RenderHandler renderHandler;
 	private EventHandler eventHandler;
 	private String title;
 	private int width, height;
+	private GameState currentState;
 	private TypeChooseScreen typeChooseScreen;
 	private Camera camera;
+	private Lobby lobby;
+	private Player player;
 	
 	private static final int FPS = 60;
 	
@@ -37,9 +43,10 @@ public class Game implements Runnable {
 		this.title = title;
 		this.width = width;
 		this.height = height;
+		this.username = username;
 		myThread = new Thread(this);
-		camera = new Camera(null);
-		player = new Player("", 0, 0, username, null);
+		camera = new Camera(this, null);
+		player = null;
 	}
 	
 	
@@ -64,12 +71,15 @@ public class Game implements Runnable {
 		String type = connect.getMessage();
 		if(type.equals("null")) {
 			st = State.typeChoose;
-			player.setType(null);
+			setType(null);
 			typeChooseScreen = new TypeChooseScreen(this, "/vertex.shd", "/fragment.shd");
+			currentState = typeChooseScreen;
 		}
 		else {
-			st = State.lobby;
-			player.setType(Type.valueOf(type));
+			setType(Type.valueOf(type));
+			player = new Player(Player.getTexture(soldierType), 0, 0, username, soldierType);
+			lobby = new Lobby(this, "/vertex.shd", "/fragment.shd", connect, player);
+			currentState = lobby;
 		}
 		
 		GLFW.glfwSetWindowPos(window.getWindowHandle(), (videoMode.width()-width)/2, (videoMode.height()-height)/2);
@@ -135,12 +145,13 @@ public class Game implements Runnable {
 	
 	public void setType(Type ty) {
 		connect.sendMessage("ST " + ty.toString());
-		player.setType(ty);
-		st = State.lobby;
+		soldierType = ty;
+		st = State.lobby;		
 	}
 	
 	private void tick() {
-		
+		camera.tick();
+		currentState.tick();
 	}
 
 	public State getState() {
@@ -169,5 +180,13 @@ public class Game implements Runnable {
 	
 	public Camera getCamera() {
 		return camera;
+	}
+	
+	public Lobby getLobby() {
+		return lobby;
+	}
+	
+	public Player getPlayer() {
+		return player;
 	}
 }
