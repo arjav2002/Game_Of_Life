@@ -21,8 +21,8 @@ public class Camera {
 	
 	public void tick() {
 		if(toFollow != null) {
-			position.x = toFollow.getPosition().x - game.getWidth()/2;
-			position.y = toFollow.getPosition().y - game.getHeight()/2;			
+			position.x = -(toFollow.getPosition().x - game.getWidth()/2);
+			position.y = -(toFollow.getPosition().y - game.getHeight()/2);			
 		}
 	}
 	
@@ -35,9 +35,8 @@ public class Camera {
 		this.toFollow = toFollow;
 	}
 	
-	// temp method
-	public void setTranslate(int x) {
-		viewMatrix.translate(new Vector3f(x, 0, 0));
+	public boolean isInBounds(Vector3f pos) {
+		return pos.x >= -position.x && pos.x <= -position.x + game.getWidth() && pos.y >= -position.y && pos.y <= -position.y+game.getHeight(); 
 	}
 	
 }

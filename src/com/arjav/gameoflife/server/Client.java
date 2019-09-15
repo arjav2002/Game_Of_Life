@@ -55,8 +55,9 @@ public class Client {
 	public void sendObject(Object obj) {
 		try {
 			String msg = getMessage();
-			while(msg == null || !msg.equals("SEND"));
+			while(!msg.equals("SEND")) msg = getMessage();
 			oos.writeObject(obj);
+			oos.flush();
 		} catch (IOException e) {
 			System.err.println("Not able to send object to server");
 			e.printStackTrace();
@@ -68,7 +69,7 @@ public class Client {
 		try {
 			sendMessage("SEND");
 			while(obj == null) {
-				obj = ois.readObject();				
+				obj = ois.readObject();			
 			}
 		} catch (ClassNotFoundException | IOException e) {
 			System.err.println("Not able to read objects from server");

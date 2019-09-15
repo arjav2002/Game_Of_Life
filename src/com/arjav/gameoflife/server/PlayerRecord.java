@@ -1,9 +1,15 @@
 package com.arjav.gameoflife.server;
 
+import java.io.Serializable;
+
 import com.arjav.gameoflife.client.game.Type;
 
-public class PlayerRecord {
+public class PlayerRecord implements Serializable {
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 6763329836897208741L;
 	private int x, y;
 	private String name;
 	private Type type;
@@ -25,6 +31,14 @@ public class PlayerRecord {
 	
 	public String getName() {
 		return name;
+	}
+	
+	public void setX(int x) {
+		this.x = x;
+	}
+	
+	public void setY(int y) {
+		this.y = y;
 	}
 	
 	public int getX() {

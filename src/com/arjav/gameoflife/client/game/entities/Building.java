@@ -7,9 +7,9 @@ public class Building extends Entity{
 	private BuildingType buildingType;
 	private int nZombies, nSupplies;
 	
-	public Building(String texturePath, Vector3f position, int width, int height, BuildingType buildingType, int nZombies, int nSupplies) {
+	public Building(String texturePath, Vector3f position, int width, int height, BuildingType tileType, int nZombies, int nSupplies) {
 		super(texturePath, position, width, height);
-		this.buildingType = buildingType;
+		this.buildingType = tileType;
 		this.nZombies = nZombies;
 		this.nSupplies = nSupplies;
 	}

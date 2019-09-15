@@ -111,8 +111,9 @@ public class Connect {
 	public void sendObject(Object obj) {
 		try {
 			String msg = getMessage();
-			while(msg == null || !msg.equals("SEND"));
+			while(!msg.equals("SEND")) msg = getMessage();
 			oos.writeObject(obj);
+			oos.flush();
 		} catch (IOException e) {
 			System.err.println("Not able to send object to server");
 			e.printStackTrace();

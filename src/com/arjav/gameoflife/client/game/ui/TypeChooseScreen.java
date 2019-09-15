@@ -21,9 +21,9 @@ public class TypeChooseScreen extends GameState {
 		shader.enable();
 		shader.setUniformMat4f("camera_matrix", camera.getViewMatrix());
 
-		sniperChoose.render(shader);
-		juggernautChoose.render(shader);
-		medicChoose.render(shader);
+		sniperChoose.render(shader, camera);
+		juggernautChoose.render(shader, camera);
+		medicChoose.render(shader, camera);
 		
 		shader.disable();
 	}

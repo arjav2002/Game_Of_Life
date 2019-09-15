@@ -1,5 +1,6 @@
 package com.arjav.gameoflife.client.game.entities;
 
+import com.arjav.gameoflife.client.game.Camera;
 import com.arjav.gameoflife.client.game.graphics.Model;
 import com.arjav.gameoflife.client.game.graphics.Shader;
 import com.arjav.gameoflife.maths.Matrix4f;
@@ -23,10 +24,10 @@ public class Entity {
 	
 	protected Entity(String texturePath, Vector3f position, int width, int height) {
 		this(new Model(texturePath, new float[] {
-				position.x, position.y, position.z,
-				position.x + width, position.y, position.z,
-				position.x + width, position.y+height, position.z,
-				position.x, position.y+height, position.z
+				0, 0, 0.0f,
+				width, 0, 0.0f,
+				width, height, 0.0f,
+				0, height, 0.0f
 			},
 			new byte[] {
 				0, 1, 3,
@@ -44,13 +45,11 @@ public class Entity {
 		model.init();
 	}
 	
-	public void tick() {
-		model_matrix.translate(position);
-	}
-	
-	public void render(Shader shader) {
-		shader.setUniformMat4f("model_matrix", model_matrix);
-		model.render();
+	public void render(Shader shader, Camera camera) {
+		if(camera.isInBounds(position))
+			model_matrix.translate(position);
+			shader.setUniformMat4f("model_matrix", model_matrix);
+			model.render();
 	}
 	
 	public Vector3f getPosition() {

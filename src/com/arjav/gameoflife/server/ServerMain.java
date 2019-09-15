@@ -133,8 +133,8 @@ public class ServerMain {
 				}
 				else if(req.startsWith("GW")) {
 					player.getAssociatedClient().sendMessage(buildingRecords.size() + " " + leftEnd + " " + rightEnd);
-					for(BuildingRecord building : buildingRecords) {
-						player.getAssociatedClient().sendObject(building);
+					for(BuildingRecord buildingRecord : buildingRecords) {
+						player.getAssociatedClient().sendObject(buildingRecord);
 					}
 				}
 				else if(req.startsWith("TICK")) {
@@ -287,19 +287,21 @@ public class ServerMain {
 		for(int i = 0; i < lines.length - 1; i++) {
 			String[] tokens = lines[i].split(" ");
 			buildingRecords.add(new BuildingRecord(BuildingType.valueOf(tokens[0]), Integer.parseInt(tokens[1]), Integer.parseInt(tokens[2])));
-			supplies += Integer.parseInt(tokens[2]);
-			switch(BuildingType.valueOf(tokens[0])) {
-			case apartment:
-				housingCapacity += 10;
-				break;
-			case hospital:
-				housingCapacity += 5;
-				break;
-			case police:
-				housingCapacity += 3;
-				break;
-			case farm:
-				housingCapacity += 2;
+			if(i >= leftEnd && i <= rightEnd) {
+				supplies += Integer.parseInt(tokens[2]);
+				switch(BuildingType.valueOf(tokens[0])) {
+				case apartment:
+					housingCapacity += 10;
+					break;
+				case hospital:
+					housingCapacity += 5;
+					break;
+				case police:
+					housingCapacity += 3;
+					break;
+				case farm:
+					housingCapacity += 2;
+				}
 			}
 		}
 	}

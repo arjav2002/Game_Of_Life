@@ -33,4 +33,12 @@ public class Model {
 	public void setTexturePath(String texturePath) {
 		this.texturePath = texturePath;
 	}
+	
+	public Texture getTexture() {
+		return texture;
+	}
+	
+	public void setTexture(Texture texture) {
+		this.texture = texture;
+	}
 }

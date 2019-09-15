@@ -36,9 +36,26 @@ public class EventHandler {
 		GLFW.glfwSetKeyCallback(game.getWindowHandle(), new GLFWKeyCallback() {
 			@Override
 			public void invoke(long window, int key, int scancode, int action, int mods) {
-				x += 5;
-				game.getCamera().setTranslate(x);
-				System.out.println(x);
+				if(game.getState() != State.typeChoose) {
+					switch(key) {
+					case GLFW.GLFW_KEY_D:
+						if(action == GLFW.GLFW_PRESS) {
+							game.getLobby().getPlayer().setVelX(5.0f);
+						}
+						else if(action == GLFW.GLFW_RELEASE) {
+							game.getLobby().getPlayer().setVelX(0.0f);
+						}
+					break;
+					case GLFW.GLFW_KEY_A:
+						if(action == GLFW.GLFW_PRESS) {
+							game.getLobby().getPlayer().setVelX(-5.0f);
+						}
+						else if(action == GLFW.GLFW_RELEASE) {
+							game.getLobby().getPlayer().setVelX(0.0f);
+						}
+					}
+					
+				}
 			}
 		});
 	}
