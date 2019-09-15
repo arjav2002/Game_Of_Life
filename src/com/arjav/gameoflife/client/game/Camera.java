@@ -36,7 +36,7 @@ public class Camera {
 	}
 	
 	public boolean isInBounds(Vector3f pos) {
-		return pos.x >= -position.x && pos.x <= -position.x + game.getWidth() && pos.y >= -position.y && pos.y <= -position.y+game.getHeight(); 
+		return pos.x >= -position.x - game.getWidth()/5 && pos.x <= -position.x + game.getWidth() && pos.y >= -position.y - game.getHeight()/5 && pos.y <= -position.y+game.getHeight(); 
 	}
 	
 }

@@ -77,7 +77,7 @@ public class Lobby extends GameState {
 		playerRecord.setX(player.getX());
 		playerRecord.setY(player.getY());
 		connect.sendObject(playerRecord);
-		player.tick();
+		player.tick(game.getCamera(), tiles);
 		// send your own state
 		int toProcess = Integer.parseInt(connect.getMessage());
 		for(Player p : players) {

@@ -53,8 +53,13 @@ public class EventHandler {
 						else if(action == GLFW.GLFW_RELEASE) {
 							game.getLobby().getPlayer().setVelX(0.0f);
 						}
+					break;
+					case GLFW.GLFW_KEY_W:
+						if(action == GLFW.GLFW_PRESS) {
+							game.getLobby().getPlayer().setVelY(-30.0f);
+						}
+					break;
 					}
-					
 				}
 			}
 		});

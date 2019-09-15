@@ -1,12 +1,15 @@
 package com.arjav.gameoflife.server;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.MulticastSocket;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,21 +26,16 @@ public class ServerMain {
 
 	// ranges for public and local multi cast groups are different
 	public static final String DISCOVERY_MUTLICAST_GROUP = "239.53.63.243"; // arbitrary
-	public static final String REQ_MULTICAST_GROUP = "239.47.52.22"; // arbitrary
 	public static final int MULTICAST_SERVER_PORT = 1536;
 	public static final int MULTICAST_CLIENT_PORT = 5764;
-	public static final int REQ_SEND_CLIENT_PORT = 9134;
-	public static final int REQ_RECEIVE_SERVER_PORT = 3145;
-	public static final int REQ_RESPONSE_SERVER_PORT = 6913;
-	public static final int RESP_RECEIVE_CLIENT_PORT = 7669;
+	public static final int REQ_PORT = 7482;
 	
 	private InetAddress localGroup;
-	private InetAddress reqGroup;
 	private InetAddress serverAddr;
 	
 	private DatagramSocket broadcastSocket;
-	private DatagramSocket reqResponseSocket;
-	private MulticastSocket reqReceiveSocket;
+	private ServerSocket reqSocket;
+	private Socket currentClientReqSocket;
 	
 	private Thread publicReqProcessThread;
 	private Thread privateReqProcessThread;
@@ -57,7 +55,6 @@ public class ServerMain {
 	private ServerMain() {
 		try {
 			localGroup = InetAddress.getByName(DISCOVERY_MUTLICAST_GROUP);
-			reqGroup = InetAddress.getByName(REQ_MULTICAST_GROUP);
 			registeredUsers = new ArrayList<String[]>();
 			buildingRecords = new ArrayList<BuildingRecord>();
 			readRegisteredUsers();
@@ -76,10 +73,7 @@ public class ServerMain {
 	private void init() {
 		try {
 			broadcastSocket = new DatagramSocket(MULTICAST_SERVER_PORT);
-			reqReceiveSocket = new MulticastSocket(REQ_RECEIVE_SERVER_PORT);
-			reqReceiveSocket.joinGroup(reqGroup);
-			reqReceiveSocket.setSoTimeout(100);
-			reqResponseSocket = new DatagramSocket(REQ_RESPONSE_SERVER_PORT);
+			reqSocket = new ServerSocket(REQ_PORT);
 			running = true;
 			createAndStartReqProcessThread();
 			
@@ -159,10 +153,11 @@ public class ServerMain {
 		// else generate new player
 		String[] regUser = userIsRegistered(clientInfo[1]);
 		Client c = new Client(clientInfo[0], clientInfo[1], clientInfo[2]);
+
 		ServerPlayer newPlayer;
 		if(regUser != null) {
 			if(!regUser[1].equals(clientInfo[2])) {
-				NetUtils.sendMessage(reqResponseSocket, clientInfo[0] + " IP", reqGroup, RESP_RECEIVE_CLIENT_PORT);
+				NetUtils.sendMessage(currentClientReqSocket, clientInfo[0] + " IP");
 				// incorrect password
 				return;
 			}
@@ -170,26 +165,32 @@ public class ServerMain {
 				newPlayer = new ServerPlayer(0, 0, clientInfo[1], Type.valueOf(regUser[2]), c);
 			}
 		} else {
-			if(remainingSurvivors >= housingCapacity) {
-				NetUtils.sendMessage(reqResponseSocket, clientInfo[0] + " NS", reqGroup, RESP_RECEIVE_CLIENT_PORT);
-			}
 			registeredUsers.add(new String[] {clientInfo[1], clientInfo[2], "null"});
 			remainingSurvivors++;
 			newPlayer = new ServerPlayer(0, 0, clientInfo[1], null, c);
 		}
 		
-		NetUtils.sendMessage(reqResponseSocket, clientInfo[0] + " CP " + c.getServerSocket().getLocalPort(), reqGroup, RESP_RECEIVE_CLIENT_PORT);
+		NetUtils.sendMessage(currentClientReqSocket, clientInfo[0] + " CP " + c.getServerSocket().getLocalPort());
+		System.out.println("Sent dedicated port to client");
 		// correct password, here's your dedicated port, client
+		try {
+			if(NetUtils.getMessage(currentClientReqSocket).equals("OK")) currentClientReqSocket.close();
+			System.out.println("Closed");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		
 		c.connect();
 		String responseReceived = c.getMessage();
-		if(responseReceived.equals("initFailure")) {
+		if(!responseReceived.equals("initSuccess")) {
 			c.closeSockets();
+			System.out.println(responseReceived);
 			System.out.println("Client " + c.getIPAddr() + " was not able to initialise");
 		}
 		else {
 			playerList.add(newPlayer);
 			playerRecords.put(newPlayer.getName(), (PlayerRecord)newPlayer);
+			System.out.println("Client initialised successfullly");
 		}
 	}
 	
@@ -198,18 +199,23 @@ public class ServerMain {
 			@Override
 			public void run() {
 				while(running) {
-					String msgReceived = NetUtils.getMessage(reqReceiveSocket).trim();
-					/*
-					 * CJ IP -> Client join request
-					 * */
-					if(msgReceived.startsWith("CJ ")) {
-						new Thread(new Runnable() {
-							@Override
-							public void run() {
+					try {
+						if(currentClientReqSocket == null || currentClientReqSocket.isClosed()) {
+							currentClientReqSocket = reqSocket.accept();
+							NetUtils.sendMessage(currentClientReqSocket, "OK");
+							System.out.println("Sent OK");
+							String msgReceived = NetUtils.getMessage(currentClientReqSocket);
+							/*
+							 * CJ IP -> Client join request
+							 * */
+							System.out.println(msgReceived);
+							if(msgReceived.startsWith("CJ ")) {
 								joinClient(msgReceived.substring(3, msgReceived.length()));
 							}
-						}).start();
-						// 
+						}
+					}
+					catch (IOException e) {
+						e.printStackTrace();
 					}
 				}
 			}
@@ -248,8 +254,9 @@ public class ServerMain {
 		
 		broadcastSocket.close();
 		try {
-			reqReceiveSocket.close();
-			reqResponseSocket.close();
+			reqSocket.close();
+			if(currentClientReqSocket != null) currentClientReqSocket.close();
+			reqSocket.close();
 			PrintWriter pw = new PrintWriter(new FileWriter(new File(getClass().getResource("/Users.txt").getPath())));
 			for(String[] tokens : registeredUsers) {
 				String line = "";

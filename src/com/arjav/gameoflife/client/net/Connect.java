@@ -6,7 +6,6 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.Socket;
@@ -21,11 +20,9 @@ import com.arjav.gameoflife.server.ServerMain;
 public class Connect {
 		
 	private MulticastSocket discoverySocket;
-	private MulticastSocket receiveRespSocket;
-	private DatagramSocket reqToServer;
+	private Socket reqServerSocket;
 	private Socket dedicatedSocket;
 	private String clientIP;
-	private InetAddress reqGroup;
 	private BufferedReader br;
 	private PrintWriter pw;
 	private ObjectInputStream ois;
@@ -37,10 +34,6 @@ public class Connect {
 			discoverySocket = new MulticastSocket(ServerMain.MULTICAST_CLIENT_PORT);
 			discoverySocket.joinGroup(InetAddress.getByName(ServerMain.DISCOVERY_MUTLICAST_GROUP));
 			clientIP = InetAddress.getLocalHost().getHostAddress();
-			reqGroup = InetAddress.getByName(ServerMain.REQ_MULTICAST_GROUP);
-			reqToServer = new DatagramSocket(ServerMain.REQ_SEND_CLIENT_PORT);
-			receiveRespSocket = new MulticastSocket(ServerMain.RESP_RECEIVE_CLIENT_PORT);
-			receiveRespSocket.joinGroup(reqGroup);
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.err.println("Could not initialise multicast sockets or local IPs");
@@ -48,24 +41,37 @@ public class Connect {
 	}
 	
 	public boolean requestConnection(String username, String password, String serverAddr) {
-		NetUtils.sendMessage(reqToServer, "CJ " + clientIP + " " + username + " " + password, reqGroup, ServerMain.REQ_RECEIVE_SERVER_PORT);
 		String response = "";
-		do {
-			response = NetUtils.getMessage(receiveRespSocket);
-		} while(!response.startsWith(clientIP));
-		
-		String[] tokens = response.split(" ");
-		System.out.println(response);
-		if(tokens[1].equals("IP")) return false;
 		try {
-			dedicatedSocket = new Socket(serverAddr, Integer.parseInt(tokens[2]));
-			br = new BufferedReader(new InputStreamReader(dedicatedSocket.getInputStream()));
-			pw = new PrintWriter(dedicatedSocket.getOutputStream());
-			oos = new ObjectOutputStream(dedicatedSocket.getOutputStream());
-			ois = new ObjectInputStream(dedicatedSocket.getInputStream());
-		} catch (NumberFormatException | IOException e) {
-			System.err.println("not able to initialise sockets");
-			e.printStackTrace();
+			reqServerSocket = new Socket(serverAddr, ServerMain.REQ_PORT);
+
+			System.out.println("Getting OK");
+			NetUtils.getMessage(reqServerSocket);
+			System.out.println("Gotten OK, Requesting connect");
+			NetUtils.sendMessage(reqServerSocket, "CJ " + clientIP + " " + username + " " + password);
+			System.out.println("Waiting on response");
+			response = NetUtils.getMessage(reqServerSocket);
+			NetUtils.sendMessage(reqServerSocket, "OK");
+			String[] tokens = response.split(" ");
+			System.out.println(response);
+			if(!tokens[1].equals("CP")) return false;
+			try {
+				dedicatedSocket = new Socket(serverAddr, Integer.parseInt(tokens[2]));
+				br = new BufferedReader(new InputStreamReader(dedicatedSocket.getInputStream()));
+				pw = new PrintWriter(dedicatedSocket.getOutputStream());
+				oos = new ObjectOutputStream(dedicatedSocket.getOutputStream());
+				ois = new ObjectInputStream(dedicatedSocket.getInputStream());
+			} catch (NumberFormatException | IOException e) {
+				System.err.println("not able to initialise sockets");
+				e.printStackTrace();
+			}
+			try {
+				reqServerSocket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} catch (IOException e1) {
+			e1.printStackTrace();
 		}
 		return true;
 	}
@@ -92,7 +98,6 @@ public class Connect {
 	
 	public void close() {
 		discoverySocket.close();
-		reqToServer.close();
 		try {
 			dedicatedSocket.close();
 			br.close();

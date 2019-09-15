@@ -6,10 +6,13 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.Socket;
+
+import com.arjav.gameoflife.client.glutils.FileUtils;
 
 public class NetUtils {
 	
@@ -28,8 +31,9 @@ public class NetUtils {
 	public static void sendMessage(Socket socket, String str) {
 		try {
 			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
-			dos.write(str.getBytes());
-			dos.close();
+			PrintWriter pw = new PrintWriter(dos);
+			pw.println(str);
+			pw.flush();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -49,8 +53,7 @@ public class NetUtils {
 		String msg = "";
 		try {
 			BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-			String str = null;
-			while((str = br.readLine()) != null) msg += str;
+			msg = br.readLine();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

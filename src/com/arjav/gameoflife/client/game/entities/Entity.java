@@ -1,5 +1,7 @@
 package com.arjav.gameoflife.client.game.entities;
 
+import java.awt.Rectangle;
+
 import com.arjav.gameoflife.client.game.Camera;
 import com.arjav.gameoflife.client.game.graphics.Model;
 import com.arjav.gameoflife.client.game.graphics.Shader;
@@ -46,10 +48,11 @@ public class Entity {
 	}
 	
 	public void render(Shader shader, Camera camera) {
-		if(camera.isInBounds(position))
+		if(camera.isInBounds(position)) {
 			model_matrix.translate(position);
 			shader.setUniformMat4f("model_matrix", model_matrix);
 			model.render();
+		}
 	}
 	
 	public Vector3f getPosition() {
@@ -62,6 +65,22 @@ public class Entity {
 	
 	public int getHeight() {
 		return height;
+	}
+	
+	public Rectangle getBoundsTop() {
+		return new Rectangle((int)position.x+2, (int)position.y-2, getWidth()-4, 12);
+	}
+	
+	public Rectangle getBoundsBottom() {
+		return new Rectangle((int)position.x+2, (int)position.y+getHeight()-10, getWidth()-4, 12);
+	}
+
+	public Rectangle getBoundsLeft() {
+		return new Rectangle((int)position.x-2, (int)position.y+2, 12, getHeight()-4);
+	}
+
+	public Rectangle getBoundsRight() {
+		return new Rectangle((int)position.x-10+getWidth(), (int)position.y+2, 12, getHeight()-4);
 	}
 	
 }

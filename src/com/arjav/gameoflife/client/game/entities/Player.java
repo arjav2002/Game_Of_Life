@@ -1,5 +1,7 @@
 package com.arjav.gameoflife.client.game.entities;
 
+import java.util.ArrayList;
+
 import com.arjav.gameoflife.client.game.Camera;
 import com.arjav.gameoflife.client.game.Type;
 import com.arjav.gameoflife.client.game.graphics.Shader;
@@ -13,7 +15,8 @@ public class Player extends Entity {
 	private Type type;
 	private String name;
 	private float velX = 0, velY = 0;
-	private final float gravity = 6.0f;
+	private final float gravity = 2.0f;
+	private final float maxVelY = 20.0f;
 	private Texture leftHeadingTexture, rightHeadingTexture;
 	
 	public Player(String texturePath, int x, int y, String name, Type type) {
@@ -37,10 +40,19 @@ public class Player extends Entity {
 		super.render(shader, camera);
 	}
 	
-	public void tick() {
-		//velY += gravity;
+	public void tick(Camera camera, ArrayList<Tile> tiles) {
+		velY += gravity;
+		if(velY >= maxVelY) velY = maxVelY;
 		position.x += velX;
 		position.y += velY;
+		for(Tile tile : tiles) {
+			if(camera.isInBounds(tile.getPosition())) {
+				if(getBoundsBottom().intersects(tile.getBoundsTop())) {
+					velY = 0;
+					position.y = tile.getPosition().y - HEIGHT;
+				}
+			}
+		}
 	}
 	
 	public Type getType() {
@@ -73,6 +85,10 @@ public class Player extends Entity {
 	
 	public void setVelX(float velX) {
 		this.velX = velX;
+	}
+	
+	public void setVelY(float velY) {
+		this.velY = velY;
 	}
 	
 	public static String getTexture(Type soldierType) {

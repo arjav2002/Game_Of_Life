@@ -55,6 +55,7 @@ public class Game implements Runnable {
 		GLFW.glfwWindowHint(GLFW.GLFW_RESIZABLE, GLFW.GLFW_FALSE);
 		try {
 			window = new Window(title, width, height);
+			System.out.println("Created window");
 		} catch (WindowNotCreatedException e) {
 			System.err.println("Could not create window");
 			connect.sendMessage("initFailure");
