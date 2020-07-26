@@ -1,13 +1,11 @@
-#version 330 core
+#version 130
 
-layout (location = 0) out vec4 color;
+out vec4 color;
 
 uniform sampler2D tex;
 
-in DATA {
-	vec2 texCoords;
-} fs_in;
+in vec2 texCoords2;
 
 void main() {
-	color = texture(tex, fs_in.texCoords);
+	color = texture(tex, texCoords2);
 }
