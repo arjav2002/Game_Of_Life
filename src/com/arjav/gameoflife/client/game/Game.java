@@ -68,16 +68,15 @@ public class Game implements Runnable {
 		connect.sendMessage("initSuccess");
 		
 		// ascertain type of soldier and gamestate
-		connect.sendMessage("GT");
-		String type = connect.getMessage();
-		if(type.equals("null")) {
+		connect.sendMessage("GetType");
+		Type type = (Type) connect.getObject();
+		setType(type);
+		if(type == null) {
 			st = State.typeChoose;
-			setType(null);
 			typeChooseScreen = new TypeChooseScreen(this, "/vertex.shd", "/fragment.shd");
 			currentState = typeChooseScreen;
 		}
 		else {
-			setType(Type.valueOf(type));
 			player = new Player(Player.getTexture(soldierType), 0, 0, username, soldierType);
 			lobby = new Lobby(this, "/vertex.shd", "/fragment.shd", connect, player);
 			currentState = lobby;
@@ -139,13 +138,13 @@ public class Game implements Runnable {
 	public void stop() {
 		GLFW.glfwDestroyWindow(window.getWindowHandle());
 		GLFW.glfwTerminate();
-		connect.sendMessage("LO");
+		connect.sendMessage("Logout");
 		System.out.println(connect.getMessage()); // wait for server to send Logged out message
 		System.exit(0);
 	}
 	
 	public void setType(Type ty) {
-		connect.sendMessage("ST " + ty.toString());
+		connect.sendMessage("SetType " + ty.toString());
 		soldierType = ty;
 		st = State.lobby;		
 	}

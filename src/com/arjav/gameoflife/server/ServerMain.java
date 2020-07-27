@@ -107,36 +107,35 @@ public class ServerMain {
 	private synchronized void processRequests() {
 		ListIterator<PlayerRecord> iter = playerRecords.listIterator();
 		while(iter.hasNext()){
-			PlayerRecord player = iter.next();
-			String req = player.getAssociatedClient().peekMessage();
+			PlayerRecord playerRecord = iter.next();
+			String req = peekMessage(playerRecord);
 			if(req != null) {
-				if(req.equals("GT")) {
-					if(player.getType() == null) player.getAssociatedClient().sendMessage("null");
-					else player.getAssociatedClient().sendMessage(player.getType().toString());
+				if(req.equals("GetType")) {
+					sendObject(playerRecord, playerRecord.getType());
 				}
-				else if(req.equals("LO")) {
+				else if(req.equals("Logout")) {
 					iter.remove();
-					player.getAssociatedClient().sendMessage("LoggedOut");
+					sendMessage(playerRecord, "LoggedOut");
 				}
-				else if(req.startsWith("ST")) {
+				else if(req.startsWith("SetType")) {
 					String type = req.split(" ")[1];
-					player.setType(Type.valueOf(type));
-					getUser(player.getName()).setType(type);
+					playerRecord.setType(Type.valueOf(type));
+					getUser(playerRecord.getName()).setType(type);
 				}
-				else if(req.startsWith("GW")) {
-					player.getAssociatedClient().sendMessage(buildingRecords.size() + " " + leftEnd + " " + rightEnd);
-					for(BuildingPacket buildingRecord : buildingRecords) {
-						player.getAssociatedClient().sendObject(buildingRecord);
+				else if(req.startsWith("GetWorld")) {
+					sendMessage(playerRecord, buildingRecords.size() + " " + leftEnd + " " + rightEnd);
+					for(BuildingPacket buildingPacket : buildingRecords) {
+						sendObject(playerRecord, buildingPacket);
 					}
 				}
-				else if(req.startsWith("TICK")) {
-					PlayerPacket playerReceived = (PlayerPacket) player.getAssociatedClient().getObject();
-					player.getAssociatedClient().sendMessage("" + (usernamePlayerMap.size()-1));
+				else if(req.startsWith("Tick")) {
+					PlayerPacket receivedPacket = (PlayerPacket) getObject(playerRecord);
+					sendMessage(playerRecord, "" + (usernamePlayerMap.size()-1));
 					Iterator<String> iterator = usernamePlayerMap.keySet().iterator();
 					for(int i = 0; i < usernamePlayerMap.size(); i++) {
-						PlayerPacket record = usernamePlayerMap.get(iterator.next());
-						if(record.getName().equals(playerReceived.getName())) record = playerReceived;
-						else player.getAssociatedClient().sendObject(record);
+						PlayerPacket packetToSend = usernamePlayerMap.get(iterator.next());
+						if(packetToSend.getName().equals(receivedPacket.getName())) packetToSend = receivedPacket;
+						else sendObject(playerRecord, packetToSend);
 					}
 				}
 				
@@ -327,4 +326,19 @@ public class ServerMain {
 		return toReturn;
 	}
 	
+	private static void sendObject(PlayerRecord playerRecord, Object obj) {
+		playerRecord.getAssociatedClient().sendObject(obj);
+	}
+	
+	private static void sendMessage(PlayerRecord playerRecord, String msg) {
+		sendObject(playerRecord, msg);
+	}
+	
+	private static String peekMessage(PlayerRecord playerRecord) {
+		return playerRecord.getAssociatedClient().peekMessage();
+	}
+	
+	private static Object getObject(PlayerRecord playerRecord) {
+		return playerRecord.getAssociatedClient().getObject();
+	}
 }

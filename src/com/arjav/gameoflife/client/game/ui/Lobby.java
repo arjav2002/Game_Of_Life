@@ -32,7 +32,7 @@ public class Lobby extends GameState {
 	private final int PADDING;
 	private final int LAND_LOC;
 	private Player player;
-	private PlayerPacket playerRecord;
+	private PlayerPacket playerPacket;
 	private Connect connect;
 	
 	public Lobby(Game game, String vertexShader, String fragmentShader, Connect connect, Player player) {
@@ -51,10 +51,10 @@ public class Lobby extends GameState {
 		players.add(player);
 		this.connect = connect;
 		
-		connect.sendMessage("GW");
+		connect.sendMessage("GetWorld");
 		initWorld();
 		
-		playerRecord = new PlayerPacket(player.getX(), player.getY(), player.getName(), player.getType());
+		playerPacket = new PlayerPacket(player.getX(), player.getY(), player.getName(), player.getType());
 		game.getCamera().setEntityToFollow(player);
 	}
 
@@ -73,11 +73,14 @@ public class Lobby extends GameState {
 
 	@Override
 	public void tick() {
-		connect.sendMessage("TICK");
-		playerRecord.setX(player.getX());
-		playerRecord.setY(player.getY());
-		connect.sendObject(playerRecord);
 		player.tick(game.getCamera(), tiles);
+		playerPacket.setX(player.getX());
+		playerPacket.setY(player.getY());
+		
+		connect.sendMessage("Tick");
+		connect.sendObject(playerPacket);
+		
+		
 		// send your own state
 		int toProcess = Integer.parseInt(connect.getMessage());
 		for(Player p : players) {
