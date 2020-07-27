@@ -16,8 +16,7 @@ public class Client {
 	private String IPaddr; // client's IP address
 	private ServerSocket serverSock; // dedicated socket for the client
 	private Socket socket;
-	private String username;
-	private String password;
+	private User user;
 	private BufferedReader br;
 	private PrintWriter pw;
 	private ObjectOutputStream oos;
@@ -25,8 +24,7 @@ public class Client {
 	
 	public Client(String IPaddr, String username, String password) {
 		this.IPaddr = IPaddr;
-		this.username = username;
-		this.password = password;
+		user = new User(username, password);
 		try {
 			serverSock = new ServerSocket(0);
 		} catch (IOException e) {
@@ -124,12 +122,8 @@ public class Client {
 		return socket;
 	}
 	
-	public String getUsername() {
-		return username;
-	}
-	
-	public String getPassword() {
-		return password;
+	public User getUser() {
+		return user;
 	}
 
 }

@@ -41,12 +41,10 @@ public class ServerMain {
 	private Thread privateReqProcessThread;
 	private Thread readCommands;
 	
-	private volatile ArrayList<ServerPlayer> playerList;
-	private volatile Map<String, PlayerRecord> playerRecords;
-	// reason to create is so that a cast is not required each time a certain player needs to be sent
-	private volatile ArrayList<String[]> registeredUsers;
-	
-	private ArrayList<BuildingRecord> buildingRecords;
+	private ArrayList<BuildingPacket> buildingRecords;
+	private volatile ArrayList<PlayerRecord> playerRecords;
+	private volatile Map<String, PlayerPacket> usernamePlayerMap;
+	private volatile ArrayList<User> registeredUsers;	
 	
 	private int remainingSurvivors, supplies, housingCapacity, leftEnd, rightEnd;
 	
@@ -55,16 +53,16 @@ public class ServerMain {
 	private ServerMain() {
 		try {
 			localGroup = InetAddress.getByName(DISCOVERY_MUTLICAST_GROUP);
-			registeredUsers = new ArrayList<String[]>();
-			buildingRecords = new ArrayList<BuildingRecord>();
+			registeredUsers = new ArrayList<User>();
+			buildingRecords = new ArrayList<BuildingPacket>();
 			readRegisteredUsers();
 			readBuildings();
 			remainingSurvivors = registeredUsers.size();
 			supplies = 0;
 			housingCapacity = 0;
 			serverAddr = InetAddress.getLocalHost();
-			playerList = new ArrayList<ServerPlayer>();
-			playerRecords = new HashMap<String, PlayerRecord>();
+			playerRecords = new ArrayList<PlayerRecord>();
+			usernamePlayerMap = new HashMap<String, PlayerPacket>();
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
@@ -107,9 +105,9 @@ public class ServerMain {
 	}
 	
 	private synchronized void processRequests() {
-		ListIterator<ServerPlayer> iter = playerList.listIterator();
+		ListIterator<PlayerRecord> iter = playerRecords.listIterator();
 		while(iter.hasNext()){
-			ServerPlayer player = iter.next();
+			PlayerRecord player = iter.next();
 			String req = player.getAssociatedClient().peekMessage();
 			if(req != null) {
 				if(req.equals("GT")) {
@@ -123,20 +121,20 @@ public class ServerMain {
 				else if(req.startsWith("ST")) {
 					String type = req.split(" ")[1];
 					player.setType(Type.valueOf(type));
-					getRegisteredUserTokens(player.getName())[2] = type;
+					getUser(player.getName()).setType(type);
 				}
 				else if(req.startsWith("GW")) {
 					player.getAssociatedClient().sendMessage(buildingRecords.size() + " " + leftEnd + " " + rightEnd);
-					for(BuildingRecord buildingRecord : buildingRecords) {
+					for(BuildingPacket buildingRecord : buildingRecords) {
 						player.getAssociatedClient().sendObject(buildingRecord);
 					}
 				}
 				else if(req.startsWith("TICK")) {
-					PlayerRecord playerReceived = (PlayerRecord) player.getAssociatedClient().getObject();
-					player.getAssociatedClient().sendMessage("" + (playerRecords.size()-1));
-					Iterator<String> iterator = playerRecords.keySet().iterator();
-					for(int i = 0; i < playerRecords.size(); i++) {
-						PlayerRecord record = playerRecords.get(iterator.next());
+					PlayerPacket playerReceived = (PlayerPacket) player.getAssociatedClient().getObject();
+					player.getAssociatedClient().sendMessage("" + (usernamePlayerMap.size()-1));
+					Iterator<String> iterator = usernamePlayerMap.keySet().iterator();
+					for(int i = 0; i < usernamePlayerMap.size(); i++) {
+						PlayerPacket record = usernamePlayerMap.get(iterator.next());
 						if(record.getName().equals(playerReceived.getName())) record = playerReceived;
 						else player.getAssociatedClient().sendObject(record);
 					}
@@ -151,23 +149,23 @@ public class ServerMain {
 		// check if user with username exists in the archives
 		// if yes then load player
 		// else generate new player
-		String[] regUser = userIsRegistered(clientInfo[1]);
+		User regUser = getUser(clientInfo[1]);
 		Client c = new Client(clientInfo[0], clientInfo[1], clientInfo[2]);
 
-		ServerPlayer newPlayer;
+		PlayerRecord newPlayer;
 		if(regUser != null) {
-			if(!regUser[1].equals(clientInfo[2])) {
+			if(!regUser.getPassword().equals(clientInfo[2])) {
 				NetUtils.sendMessage(currentClientReqSocket, clientInfo[0] + " IP");
 				// incorrect password
 				return;
 			}
 			else {
-				newPlayer = new ServerPlayer(0, 0, clientInfo[1], Type.valueOf(regUser[2]), c);
+				newPlayer = new PlayerRecord(0, 0, clientInfo[1], regUser.getType(), c);
 			}
 		} else {
-			registeredUsers.add(new String[] {clientInfo[1], clientInfo[2], "null"});
+			registeredUsers.add(new User(clientInfo[1], clientInfo[2]));
 			remainingSurvivors++;
-			newPlayer = new ServerPlayer(0, 0, clientInfo[1], null, c);
+			newPlayer = new PlayerRecord(0, 0, clientInfo[1], null, c);
 		}
 		
 		NetUtils.sendMessage(currentClientReqSocket, clientInfo[0] + " CP " + c.getServerSocket().getLocalPort());
@@ -188,8 +186,8 @@ public class ServerMain {
 			System.out.println("Client " + c.getIPAddr() + " was not able to initialise");
 		}
 		else {
-			playerList.add(newPlayer);
-			playerRecords.put(newPlayer.getName(), (PlayerRecord)newPlayer);
+			playerRecords.add(newPlayer);
+			usernamePlayerMap.put(newPlayer.getName(), (PlayerPacket)newPlayer);
 			System.out.println("Client initialised successfullly");
 		}
 	}
@@ -258,15 +256,12 @@ public class ServerMain {
 			if(currentClientReqSocket != null) currentClientReqSocket.close();
 			reqSocket.close();
 			PrintWriter pw = new PrintWriter(new FileWriter(new File(getClass().getResource("/Users.txt").getPath())));
-			for(String[] tokens : registeredUsers) {
-				String line = "";
-				for(String token : tokens) {
-					line += token + " ";
-				}
+			for(User user : registeredUsers) {
+				String line = user.getUsername() + " " + user.getPassword() + " " + user.getType();
 				pw.println(line);
 			}
 			pw.close();
-			for(ServerPlayer player : playerList) {
+			for(PlayerRecord player : playerRecords) {
 				player.getAssociatedClient().getServerSocket().close();
 				player.getAssociatedClient().getSocket().close();
 			}
@@ -280,7 +275,8 @@ public class ServerMain {
 		Scanner sc = null;
 		sc = new Scanner(getClass().getResourceAsStream("/Users.txt"));
 		while(sc.hasNextLine()) {
-			registeredUsers.add(sc.nextLine().split(" "));
+			String[] userInfo = sc.nextLine().split(" ");
+			registeredUsers.add(new User(userInfo[0], userInfo[1], userInfo[2]));
 			remainingSurvivors++;
 		}
 		sc.close();
@@ -293,7 +289,7 @@ public class ServerMain {
 		rightEnd = Integer.parseInt(endings[1]);
 		for(int i = 0; i < lines.length - 1; i++) {
 			String[] tokens = lines[i].split(" ");
-			buildingRecords.add(new BuildingRecord(BuildingType.valueOf(tokens[0]), Integer.parseInt(tokens[1]), Integer.parseInt(tokens[2])));
+			buildingRecords.add(new BuildingPacket(BuildingType.valueOf(tokens[0]), Integer.parseInt(tokens[1]), Integer.parseInt(tokens[2])));
 			if(i >= leftEnd && i <= rightEnd) {
 				supplies += Integer.parseInt(tokens[2]);
 				switch(BuildingType.valueOf(tokens[0])) {
@@ -320,24 +316,15 @@ public class ServerMain {
 		sm.end();
 	}
 	
-	private String[] userIsRegistered(String username) {
-		String[] arr = null;
-		for(String[] tokens : registeredUsers) {
-			if(tokens[0].equals(username)) {
-				arr = tokens;
+	private User getUser(String username) {
+		User toReturn = null;
+		for(User user : registeredUsers) {
+			if(user.getUsername().equals(username)) {
+				toReturn = user;
 				break;
 			}
 		}
-		return arr;
-	}
-	
-	private String[] getRegisteredUserTokens(String username) {
-		
-		for(String[] tokens : registeredUsers) {
-			if(tokens[0].equals(username)) return tokens;
-		}
-		
-		return null;
+		return toReturn;
 	}
 	
 }

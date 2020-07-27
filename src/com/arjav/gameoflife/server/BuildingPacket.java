@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 import com.arjav.gameoflife.client.game.entities.BuildingType;
 
-public class BuildingRecord implements Serializable {
+public class BuildingPacket implements Serializable {
 
 	/**
 	 * 
@@ -13,7 +13,7 @@ public class BuildingRecord implements Serializable {
 	private BuildingType type;
 	private int nZombies, nSupplies;
 	
-	public BuildingRecord(BuildingType type, int nZombies, int nSupplies) {
+	public BuildingPacket(BuildingType type, int nZombies, int nSupplies) {
 		this.type = type;
 		this.nZombies = nZombies;
 		this.nSupplies = nSupplies;

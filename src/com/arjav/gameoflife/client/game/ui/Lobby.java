@@ -15,8 +15,8 @@ import com.arjav.gameoflife.client.game.entities.TileType;
 import com.arjav.gameoflife.client.net.Connect;
 import com.arjav.gameoflife.maths.Matrix4f;
 import com.arjav.gameoflife.maths.Vector3f;
-import com.arjav.gameoflife.server.BuildingRecord;
-import com.arjav.gameoflife.server.PlayerRecord;
+import com.arjav.gameoflife.server.BuildingPacket;
+import com.arjav.gameoflife.server.PlayerPacket;
 
 public class Lobby extends GameState {
 
@@ -24,7 +24,7 @@ public class Lobby extends GameState {
 	private ArrayList<Tile> tiles;
 	private ArrayList<Player> players;
 	private int leftEnd, rightEnd; // part that is inside fort
-	private Map<String, PlayerRecord> otherPlayersInLobby;
+	private Map<String, PlayerPacket> otherPlayersInLobby;
 	private Map<String, Boolean> otherPlayersTicked;
 	
 	private final int BUILDING_WIDTH, BUILDING_HEIGHT;
@@ -32,7 +32,7 @@ public class Lobby extends GameState {
 	private final int PADDING;
 	private final int LAND_LOC;
 	private Player player;
-	private PlayerRecord playerRecord;
+	private PlayerPacket playerRecord;
 	private Connect connect;
 	
 	public Lobby(Game game, String vertexShader, String fragmentShader, Connect connect, Player player) {
@@ -43,7 +43,7 @@ public class Lobby extends GameState {
 		LAND_LOC = 3*game.getHeight()/4;
 		PADDING = BUILDING_WIDTH/10;
 		buildings = new ArrayList<Building>();
-		otherPlayersInLobby = new HashMap<String, PlayerRecord>();
+		otherPlayersInLobby = new HashMap<String, PlayerPacket>();
 		otherPlayersTicked = new HashMap<String, Boolean>();
 		players = new ArrayList<Player>();
 		tiles = new ArrayList<Tile>();
@@ -54,7 +54,7 @@ public class Lobby extends GameState {
 		connect.sendMessage("GW");
 		initWorld();
 		
-		playerRecord = new PlayerRecord(player.getX(), player.getY(), player.getName(), player.getType());
+		playerRecord = new PlayerPacket(player.getX(), player.getY(), player.getName(), player.getType());
 		game.getCamera().setEntityToFollow(player);
 	}
 
@@ -84,7 +84,7 @@ public class Lobby extends GameState {
 			if(p != player) otherPlayersTicked.put(p.getName(), false);
 		}
 		for(int i = 0; i < toProcess; i++) {
-			PlayerRecord recordReceived = (PlayerRecord) connect.getObject();
+			PlayerPacket recordReceived = (PlayerPacket) connect.getObject();
 			Player p = getPlayer(recordReceived.getName());
 			if(p == null) p = createNewPlayer(recordReceived);
 			p.setX(recordReceived.getX());
@@ -122,7 +122,7 @@ public class Lobby extends GameState {
 		leftEnd = sc.nextInt();
 		rightEnd = sc.nextInt();
 		for(int i = 0; i < nBuildingsToRead; i++) {
-			BuildingRecord buildingRecord = (BuildingRecord) connect.getObject();
+			BuildingPacket buildingRecord = (BuildingPacket) connect.getObject();
 			buildings.add(new Building(getTexture(buildingRecord.getType()), new Vector3f(i*(BUILDING_WIDTH + PADDING), LAND_LOC-BUILDING_HEIGHT, 1.0f), BUILDING_WIDTH, BUILDING_HEIGHT, buildingRecord.getType(), buildingRecord.getZombies(), buildingRecord.getSupplies()));
 			if(i == leftEnd) {
 				player.setX(i*(BUILDING_WIDTH + PADDING)+TILE_WIDTH + 20);
@@ -144,7 +144,7 @@ public class Lobby extends GameState {
 		sc.close();
 	}
 	
-	private Player createNewPlayer(PlayerRecord playerRecord) {
+	private Player createNewPlayer(PlayerPacket playerRecord) {
 		Player p = new Player(Player.getTexture(playerRecord.getType()), playerRecord.getX(), playerRecord.getY(), playerRecord.getName(), playerRecord.getType());
 		p.init();
 		otherPlayersInLobby.put(playerRecord.getName(), playerRecord);
