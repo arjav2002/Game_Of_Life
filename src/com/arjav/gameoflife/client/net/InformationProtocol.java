@@ -24,12 +24,12 @@ public class InformationProtocol {
 		ois = new ObjectInputStream(socket.getInputStream());
 	}
 	
-	public void sendMessage(String str) {
+	public synchronized void sendMessage(String str) {
 		pw.println(str + "\n");
 		pw.flush();
 	}
 	
-	public String getMessage() {
+	public synchronized String getMessage() {
 		String msg = "";
 		try {
 			while(FileUtils.isEmpty(msg)) {
@@ -41,7 +41,7 @@ public class InformationProtocol {
 		return msg;
 	}
 	
-	public void sendObject(Object obj) {
+	public synchronized void sendObject(Object obj) {
 		try {
 			String msg;
 			do {
@@ -56,7 +56,7 @@ public class InformationProtocol {
 		}
 	}
 	
-	public Object getObject() {
+	public synchronized Object getObject() {
 		Object obj = null;
 		try {
 			sendMessage("SEND");

@@ -23,7 +23,6 @@ public class Lobby extends GameState {
 	private ArrayList<Building> buildings;
 	private ArrayList<Tile> tiles;
 	private Player[] players;
-	private boolean[] ticked;
 	private int nCurrentPlayers;
 	private int leftEnd, rightEnd; // part that is inside fort
 	
@@ -44,7 +43,6 @@ public class Lobby extends GameState {
 		PADDING = BUILDING_WIDTH/10;
 		buildings = new ArrayList<Building>();
 		players = new Player[MAX_PLAYERS];
-		ticked = new boolean[MAX_PLAYERS];
 		tiles = new ArrayList<Tile>();
 		this.player = player;
 		players[0] = player;
@@ -74,10 +72,6 @@ public class Lobby extends GameState {
 	public void tick() {	
 		connect.sendMessage("Tick");
 		
-		for(int i = 0; i < MAX_PLAYERS; i++) {
-			ticked[i] = false;
-		}
-		
 		nCurrentPlayers = Integer.parseInt(connect.getMessage());
 		int nextIndex = 1;
 		for(int i = 0; i < nCurrentPlayers; i++) {
@@ -87,23 +81,10 @@ public class Lobby extends GameState {
 		}
 				
 		player.tick(game.getCamera(), tiles);
-		ticked[0] = true;
 
 		for(int i = 0; i < nCurrentPlayers; i++) {
-			System.out.println(players[i]);
 			connect.sendObject(players[i].getPlayerPacket());
 		}
-	}
-	
-	private void deleteInactivePlayers() {
-		for(int i = 0; i < MAX_PLAYERS; i++) {
-			if(!ticked[i]) players[i] = null; 
-		}
-		int j = 0;
-		for(int i = 0; i < MAX_PLAYERS; i++) {
-			if(players[i] != null) players[j++] = players[i];
-		}
-		nCurrentPlayers = j;
 	}
 	
 	public void init(Matrix4f prMatrix) {
