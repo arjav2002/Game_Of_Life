@@ -43,9 +43,9 @@ public class ServerMain {
 	private Thread readCommands;
 	
 	private ArrayList<BuildingPacket> buildings;
-	private volatile ArrayList<PlayerClient> players;
-	private volatile Map<String, PlayerPacket> usernamePlayerMap;
-	private volatile ArrayList<User> registeredUsers;	
+	private ArrayList<PlayerClient> players;
+	private Map<String, PlayerPacket> usernamePlayerMap;
+	private ArrayList<User> registeredUsers;	
 	
 	private int remainingSurvivors, supplies, housingCapacity, leftEnd, rightEnd;
 	
@@ -150,48 +150,48 @@ public class ServerMain {
 	}
 	
 	private synchronized void joinClient(String info) {
-		String[] clientInfo = info.split(" ");
-		// check if user with username exists in the archives
-		// if yes then load player
-		// else generate new player
-		User regUser = getUser(clientInfo[1]);
-		Client c = new Client(clientInfo[0], clientInfo[1], clientInfo[2]);
-
-		PlayerClient newPlayer;
-		if(regUser != null) {
-			if(!regUser.getPassword().equals(clientInfo[2])) {
-				NetUtils.sendMessage(currentClientReqSocket, clientInfo[0] + " IP");
-				// incorrect password
-				return;
+		synchronized(sharedLock) {
+			String[] clientInfo = info.split(" ");
+			// check if user with username exists in the archives
+			// if yes then load player
+			// else generate new player
+			User regUser = getUser(clientInfo[1]);
+			Client c = new Client(clientInfo[0], clientInfo[1], clientInfo[2]);
+	
+			PlayerClient newPlayer;
+			if(regUser != null) {
+				if(!regUser.getPassword().equals(clientInfo[2])) {
+					NetUtils.sendMessage(currentClientReqSocket, clientInfo[0] + " IP");
+					// incorrect password
+					return;
+				}
+				else {
+					newPlayer = new PlayerClient(clientInfo[1], regUser.getType(), c);
+				}
+			} else {
+				registeredUsers.add(new User(clientInfo[1], clientInfo[2]));
+				remainingSurvivors++;
+				newPlayer = new PlayerClient(clientInfo[1], null, c);
+			}
+			
+			NetUtils.sendMessage(currentClientReqSocket, clientInfo[0] + " CP " + c.getServerSocket().getLocalPort());
+			System.out.println("Sent dedicated port to client");
+			// correct password, here's your dedicated port, client
+			try {
+				if(NetUtils.getMessage(currentClientReqSocket).equals("OK")) currentClientReqSocket.close();
+				System.out.println("Closed");
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+			c.connect();
+			String responseReceived = c.getMessage();
+			if(!responseReceived.equals("initSuccess")) {
+				c.closeSockets();
+				System.out.println(responseReceived);
+				System.out.println("Client " + c.getIPAddr() + " was not able to initialise");
 			}
 			else {
-				newPlayer = new PlayerClient(clientInfo[1], regUser.getType(), c);
-			}
-		} else {
-			registeredUsers.add(new User(clientInfo[1], clientInfo[2]));
-			remainingSurvivors++;
-			newPlayer = new PlayerClient(clientInfo[1], null, c);
-		}
-		
-		NetUtils.sendMessage(currentClientReqSocket, clientInfo[0] + " CP " + c.getServerSocket().getLocalPort());
-		System.out.println("Sent dedicated port to client");
-		// correct password, here's your dedicated port, client
-		try {
-			if(NetUtils.getMessage(currentClientReqSocket).equals("OK")) currentClientReqSocket.close();
-			System.out.println("Closed");
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		c.connect();
-		String responseReceived = c.getMessage();
-		if(!responseReceived.equals("initSuccess")) {
-			c.closeSockets();
-			System.out.println(responseReceived);
-			System.out.println("Client " + c.getIPAddr() + " was not able to initialise");
-		}
-		else {
-			synchronized(sharedLock) {
 				players.add(newPlayer);
 				usernamePlayerMap.put(newPlayer.getName(), new PlayerPacket(0, 0, newPlayer.getName(), newPlayer.type, 0, 0, false));
 				System.out.println("Client initialised successfullly");
