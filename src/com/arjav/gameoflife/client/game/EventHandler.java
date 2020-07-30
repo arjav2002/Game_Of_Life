@@ -17,6 +17,9 @@ public class EventHandler {
 		keys = new boolean[N_KEYS];
 		for(int i = 0; i < N_KEYS; i++) keys[i] = false;
 		this.game = game;
+	}
+	
+	public void init() {
 		GLFW.glfwSetCursorPosCallback(game.getWindowHandle(), new GLFWCursorPosCallback() {
 			@Override
 			public void invoke(long window, double xpos, double ypos) {
@@ -40,23 +43,23 @@ public class EventHandler {
 					switch(key) {
 					case GLFW.GLFW_KEY_D:
 						if(action == GLFW.GLFW_PRESS) {
-							game.getLobby().getPlayer().setVelX(5.0f);
+							game.getLobby().getPlayer().velX = 5.0f;
 						}
 						else if(action == GLFW.GLFW_RELEASE) {
-							game.getLobby().getPlayer().setVelX(0.0f);
+							game.getLobby().getPlayer().velX = 0.0f;
 						}
 					break;
 					case GLFW.GLFW_KEY_A:
 						if(action == GLFW.GLFW_PRESS) {
-							game.getLobby().getPlayer().setVelX(-5.0f);
+							game.getLobby().getPlayer().velX = -5.0f;
 						}
 						else if(action == GLFW.GLFW_RELEASE) {
-							game.getLobby().getPlayer().setVelX(0.0f);
+							game.getLobby().getPlayer().velX = 0.0f;
 						}
 					break;
 					case GLFW.GLFW_KEY_W:
 						if(action == GLFW.GLFW_PRESS) {
-							game.getLobby().getPlayer().setVelY(-30.0f);
+							game.getLobby().getPlayer().velY = -30.0f;
 						}
 					break;
 					}

@@ -12,7 +12,7 @@ import com.arjav.gameoflife.client.game.entities.BuildingType;
 import com.arjav.gameoflife.client.game.entities.Player;
 import com.arjav.gameoflife.client.game.entities.Tile;
 import com.arjav.gameoflife.client.game.entities.TileType;
-import com.arjav.gameoflife.client.net.Connect;
+import com.arjav.gameoflife.client.net.ClientConnect;
 import com.arjav.gameoflife.maths.Matrix4f;
 import com.arjav.gameoflife.maths.Vector3f;
 import com.arjav.gameoflife.server.BuildingPacket;
@@ -22,20 +22,20 @@ public class Lobby extends GameState {
 
 	private ArrayList<Building> buildings;
 	private ArrayList<Tile> tiles;
-	private ArrayList<Player> players;
+	private Player[] players;
+	private boolean[] ticked;
+	private int nCurrentPlayers;
 	private int leftEnd, rightEnd; // part that is inside fort
-	private Map<String, PlayerPacket> otherPlayersInLobby;
-	private Map<String, Boolean> otherPlayersTicked;
 	
 	private final int BUILDING_WIDTH, BUILDING_HEIGHT;
 	private final int TILE_WIDTH, TILE_HEIGHT;
 	private final int PADDING;
 	private final int LAND_LOC;
+	private final int MAX_PLAYERS = 10;
 	private Player player;
-	private PlayerPacket playerPacket;
-	private Connect connect;
+	private ClientConnect connect;
 	
-	public Lobby(Game game, String vertexShader, String fragmentShader, Connect connect, Player player) {
+	public Lobby(Game game, String vertexShader, String fragmentShader, ClientConnect connect, Player player) {
 		super(game, vertexShader, fragmentShader);
 		BUILDING_WIDTH = game.getWidth()/5;
 		BUILDING_HEIGHT = game.getHeight()/3;
@@ -43,18 +43,17 @@ public class Lobby extends GameState {
 		LAND_LOC = 3*game.getHeight()/4;
 		PADDING = BUILDING_WIDTH/10;
 		buildings = new ArrayList<Building>();
-		otherPlayersInLobby = new HashMap<String, PlayerPacket>();
-		otherPlayersTicked = new HashMap<String, Boolean>();
-		players = new ArrayList<Player>();
+		players = new Player[MAX_PLAYERS];
+		ticked = new boolean[MAX_PLAYERS];
 		tiles = new ArrayList<Tile>();
 		this.player = player;
-		players.add(player);
+		players[0] = player;
+		nCurrentPlayers = 1;
 		this.connect = connect;
 		
 		connect.sendMessage("GetWorld");
 		initWorld();
 		
-		playerPacket = new PlayerPacket(player.getX(), player.getY(), player.getName(), player.getType());
 		game.getCamera().setEntityToFollow(player);
 	}
 
@@ -65,49 +64,46 @@ public class Lobby extends GameState {
 		for(Building building : buildings) {
 			building.render(shader, camera);
 		}
-		for(Player p : players) p.render(shader, camera);
+		for(int i = 0; i < nCurrentPlayers; i++) players[i].render(shader, camera);
 		for(Tile t : tiles) t.render(shader, camera);
 		
 		shader.disable();
 	}
 
 	@Override
-	public void tick() {
-		player.tick(game.getCamera(), tiles);
-		playerPacket.setX(player.getX());
-		playerPacket.setY(player.getY());
-		
+	public void tick() {	
 		connect.sendMessage("Tick");
-		connect.sendObject(playerPacket);
 		
+		for(int i = 0; i < MAX_PLAYERS; i++) {
+			ticked[i] = false;
+		}
 		
-		// send your own state
-		int toProcess = Integer.parseInt(connect.getMessage());
-		for(Player p : players) {
-			if(p != player) otherPlayersTicked.put(p.getName(), false);
+		nCurrentPlayers = Integer.parseInt(connect.getMessage());
+		int nextIndex = 1;
+		for(int i = 0; i < nCurrentPlayers; i++) {
+			PlayerPacket pp = (PlayerPacket) connect.getObject();
+			if(pp.getName().equals(player.getName())) continue;
+			createPlayerEntry(pp, nextIndex++);
 		}
-		for(int i = 0; i < toProcess; i++) {
-			PlayerPacket recordReceived = (PlayerPacket) connect.getObject();
-			Player p = getPlayer(recordReceived.getName());
-			if(p == null) p = createNewPlayer(recordReceived);
-			p.setX(recordReceived.getX());
-			p.setY(recordReceived.getY());
-			otherPlayersTicked.put(p.getName(), true);
+				
+		player.tick(game.getCamera(), tiles);
+		ticked[0] = true;
+
+		for(int i = 0; i < nCurrentPlayers; i++) {
+			System.out.println(players[i]);
+			connect.sendObject(players[i].getPlayerPacket());
 		}
-		cleanUP();
-		// update others' states
 	}
 	
-	private void cleanUP() {
-		ArrayList<String> toRemove = new ArrayList<String>();
-		for(Player p : players) {
-			if(p != player && !otherPlayersTicked.get(p.getName())) toRemove.add(p.getName());
+	private void deleteInactivePlayers() {
+		for(int i = 0; i < MAX_PLAYERS; i++) {
+			if(!ticked[i]) players[i] = null; 
 		}
-		for(String name : toRemove) {
-			players.remove(getPlayer(name));
-			otherPlayersTicked.remove(name);
-			otherPlayersInLobby.remove(name);
+		int j = 0;
+		for(int i = 0; i < MAX_PLAYERS; i++) {
+			if(players[i] != null) players[j++] = players[i];
 		}
+		nCurrentPlayers = j;
 	}
 	
 	public void init(Matrix4f prMatrix) {
@@ -125,8 +121,8 @@ public class Lobby extends GameState {
 		leftEnd = sc.nextInt();
 		rightEnd = sc.nextInt();
 		for(int i = 0; i < nBuildingsToRead; i++) {
-			BuildingPacket buildingRecord = (BuildingPacket) connect.getObject();
-			buildings.add(new Building(getTexture(buildingRecord.getType()), new Vector3f(i*(BUILDING_WIDTH + PADDING), LAND_LOC-BUILDING_HEIGHT, 1.0f), BUILDING_WIDTH, BUILDING_HEIGHT, buildingRecord.getType(), buildingRecord.getZombies(), buildingRecord.getSupplies()));
+			BuildingPacket bp = (BuildingPacket) connect.getObject();;
+			buildings.add(new Building(getTexture(bp.getType()), new Vector3f(i*(BUILDING_WIDTH + PADDING), LAND_LOC-BUILDING_HEIGHT, 1.0f), BUILDING_WIDTH, BUILDING_HEIGHT, bp.getType(), bp.getZombies(), bp.getSupplies()));
 			if(i == leftEnd) {
 				player.setX(i*(BUILDING_WIDTH + PADDING)+TILE_WIDTH + 20);
 				player.setY(LAND_LOC - Player.HEIGHT);
@@ -147,13 +143,22 @@ public class Lobby extends GameState {
 		sc.close();
 	}
 	
-	private Player createNewPlayer(PlayerPacket playerRecord) {
-		Player p = new Player(Player.getTexture(playerRecord.getType()), playerRecord.getX(), playerRecord.getY(), playerRecord.getName(), playerRecord.getType());
-		p.init();
-		otherPlayersInLobby.put(playerRecord.getName(), playerRecord);
-		players.add(p);
-		otherPlayersTicked.put(playerRecord.getName(), false);
-		return p;
+	private void createPlayerEntry(PlayerPacket pp, int index) {
+		if(players[index] != null && pp.getName().equals(players[index].getName())) {
+			players[index].setX(pp.getX());
+			players[index].setY(pp.getY());
+			players[index].velX = pp.getVelX();
+			players[index].velY = pp.getVelY();
+			players[index].setShooting(pp.isShooting());
+		}
+		else {
+			Player p = new Player(Player.getTexture(pp.getType()), pp.getX(), pp.getY(), pp.getName(), pp.getType());
+			p.velX = pp.getVelX();
+			p.velY = pp.getVelY();
+			p.setShooting(pp.isShooting());
+			p.init();
+			players[index] = p;
+		}
 	}
 
 	private String getTexture(BuildingType type) {
@@ -169,12 +174,7 @@ public class Lobby extends GameState {
 		}
 		return "NULL TEXTURE";
 	}
-	
-	private Player getPlayer(String name) {
-		for(int i = 0; i < players.size(); i++)
-			if(players.get(i).getName().equals(name)) return players.get(i);
-		return null;
-	}
+
 	
 	public Player getPlayer() {
 		return player;

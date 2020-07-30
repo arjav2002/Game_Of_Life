@@ -37,9 +37,18 @@ public class TypeChooseScreen extends GameState {
 	}
 	
 	public void leftMousePress(int mx, int my) {
-		if(juggernautChoose.isInBounds(mx, my)) game.setType(Type.juggernaut);
-		else if(sniperChoose.isInBounds(mx, my)) game.setType(Type.sniper);
-		else if(medicChoose.isInBounds(mx, my)) game.setType(Type.medic);
+		if(juggernautChoose.isInBounds(mx, my)) {
+			game.setType(Type.juggernaut);
+			game.moveToLobby();
+		}
+		else if(sniperChoose.isInBounds(mx, my)) {
+			game.setType(Type.sniper);
+			game.moveToLobby();
+		}
+		else if(medicChoose.isInBounds(mx, my)) {
+			game.setType(Type.medic);
+			game.moveToLobby();
+		}
 	}
 	
 	@Override

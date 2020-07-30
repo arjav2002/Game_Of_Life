@@ -13,32 +13,26 @@ public class PlayerPacket implements Serializable {
 	private int x, y;
 	private String name;
 	private Type type;
+	private boolean shooting;
+	private float velX, velY;
 	
-	public PlayerPacket(int x, int y, String name, Type type) {
+	public PlayerPacket(int x, int y, String name, Type type, float velX, float velY, boolean shooting) {
 		this.x = x;
 		this.y = y;
 		this.name = name;
 		this.type = type;
+		this.velX = velX;
+		this.velY = velY;
+		this.shooting = shooting;
+		
 	}
 	
 	public Type getType() {
 		return type;
 	}
 	
-	public void setType(Type ty) {
-		this.type = ty;
-	}
-	
 	public String getName() {
 		return name;
-	}
-	
-	public void setX(int x) {
-		this.x = x;
-	}
-	
-	public void setY(int y) {
-		this.y = y;
 	}
 	
 	public int getX() {
@@ -49,4 +43,15 @@ public class PlayerPacket implements Serializable {
 		return y;
 	}
 	
+	public boolean isShooting() {
+		return shooting;
+	}
+	
+	public float getVelX() {
+		return velX;
+	}
+	
+	public float getVelY() {
+		return velY;
+	}
 }

@@ -22,7 +22,7 @@ import org.lwjgl.glfw.GLFW;
 
 import com.arjav.gameoflife.client.game.Game;
 import com.arjav.gameoflife.client.game.graphics.WindowNotCreatedException;
-import com.arjav.gameoflife.client.net.Connect;
+import com.arjav.gameoflife.client.net.ClientConnect;
 
 public class Main {
 	
@@ -32,7 +32,7 @@ public class Main {
 	private DefaultComboBoxModel<String> comboBoxModel;
 	private ArrayList<String> serverList;
 	private JButton btnOk;
-	private Connect serverCon;
+	private ClientConnect serverCon;
 	private JFrame frame;;
 	private Thread serverSearchThread;
 	private static final int WINDOW_SIZE = 69;
@@ -47,7 +47,7 @@ public class Main {
 	}
 	
 	private void connectToServer() {
-		serverCon = new Connect();
+		serverCon = new ClientConnect();
 		serverCon.init();
 		createAndShowGUI();
 		serverSearchThread = new Thread(new Runnable() {

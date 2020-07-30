@@ -7,6 +7,7 @@ import com.arjav.gameoflife.client.game.Type;
 import com.arjav.gameoflife.client.game.graphics.Shader;
 import com.arjav.gameoflife.client.game.graphics.Texture;
 import com.arjav.gameoflife.maths.Vector3f;
+import com.arjav.gameoflife.server.PlayerPacket;
 
 public class Player extends Entity {
 	
@@ -14,17 +15,18 @@ public class Player extends Entity {
 
 	private Type type;
 	private String name;
-	private float velX = 0, velY = 0;
+	public float velX = 0, velY = 0;
 	private final float gravity = 2.0f;
 	private final float maxVelY = 20.0f;
 	private Texture leftHeadingTexture, rightHeadingTexture;
+	private boolean shooting; // boolean for if bullet left the gun in the last tick
 	
 	public Player(String texturePath, int x, int y, String name, Type type) {
 		super(texturePath, new Vector3f(x, y, 1.0f), WIDTH, HEIGHT);
 		this.type = type;
 		this.name = name;
+		this.shooting = false;
 		leftHeadingTexture = new Texture("/" + type.toString() + "_body_left.png");
-		
 	}
 	
 	@Override
@@ -76,19 +78,19 @@ public class Player extends Entity {
 	}
 	
 	public void setX(int x) {
-		position.x = x;
+		this.position.x = x;
 	}
 	
 	public void setY(int y) {
-		position.y = y;
+		this.position.y = y;
 	}
 	
-	public void setVelX(float velX) {
-		this.velX = velX;
+	public void setShooting(boolean shooting) {
+		this.shooting = shooting;
 	}
 	
-	public void setVelY(float velY) {
-		this.velY = velY;
+	public boolean hasShot() {
+		return shooting;
 	}
 	
 	public static String getTexture(Type soldierType) {
@@ -101,5 +103,9 @@ public class Player extends Entity {
 			return "/sniper_body.png";
 		}
 		return "NULL TEXTURE";
+	}
+	
+	public PlayerPacket getPlayerPacket() {
+		return new PlayerPacket((int)position.x, (int)position.y, name, type, velX, velY, shooting);
 	}
 }

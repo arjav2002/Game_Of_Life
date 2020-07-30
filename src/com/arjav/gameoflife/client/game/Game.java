@@ -15,12 +15,12 @@ import com.arjav.gameoflife.client.game.graphics.WindowNotCreatedException;
 import com.arjav.gameoflife.client.game.ui.GameState;
 import com.arjav.gameoflife.client.game.ui.Lobby;
 import com.arjav.gameoflife.client.game.ui.TypeChooseScreen;
-import com.arjav.gameoflife.client.net.Connect;
+import com.arjav.gameoflife.client.net.ClientConnect;
 
 public class Game implements Runnable {
 	
 	private Window window;
-	private Connect connect;
+	private ClientConnect connect;
 	private State st;
 	private Type soldierType;
 	private String username;
@@ -38,7 +38,7 @@ public class Game implements Runnable {
 	
 	private static final int FPS = 60;
 	
-	public Game(String title, int width, int height, Connect connect, String username) throws WindowNotCreatedException {		
+	public Game(String title, int width, int height, ClientConnect connect, String username) throws WindowNotCreatedException {		
 		this.connect = connect;
 		this.title = title;
 		this.width = width;
@@ -67,26 +67,20 @@ public class Game implements Runnable {
 		createCapabilities();
 		connect.sendMessage("initSuccess");
 		
+		renderHandler = new RenderHandler(this);
+		eventHandler = new EventHandler(this);
+		
 		// ascertain type of soldier and gamestate
 		connect.sendMessage("GetType");
 		Type type = (Type) connect.getObject();
-		setType(type);
 		if(type == null) {
-			st = State.typeChoose;
-			typeChooseScreen = new TypeChooseScreen(this, "/vertex.shd", "/fragment.shd");
-			currentState = typeChooseScreen;
+			moveToTypeChooseScreen();
 		}
 		else {
-			player = new Player(Player.getTexture(soldierType), 0, 0, username, soldierType);
-			lobby = new Lobby(this, "/vertex.shd", "/fragment.shd", connect, player);
-			currentState = lobby;
+			setType(type);
+			moveToLobby();
 		}
-		
 		GLFW.glfwSetWindowPos(window.getWindowHandle(), (videoMode.width()-width)/2, (videoMode.height()-height)/2);
-		renderHandler = new RenderHandler(this);
-		eventHandler = new EventHandler(this);
-		renderHandler.init();
-		
 		GLFW.glfwShowWindow(window.getWindowHandle());
 
 	}
@@ -143,10 +137,26 @@ public class Game implements Runnable {
 		System.exit(0);
 	}
 	
+	public void moveToTypeChooseScreen() {
+		st = State.typeChoose;
+		typeChooseScreen = new TypeChooseScreen(this, "/vertex.shd", "/fragment.shd");
+		eventHandler.init();
+		renderHandler.init();
+		currentState = typeChooseScreen;
+	}
+	
+	public void moveToLobby() {
+		st = State.lobby;
+		player = new Player(Player.getTexture(soldierType), 0, 0, username, soldierType);
+		lobby = new Lobby(this, "/vertex.shd", "/fragment.shd", connect, player);
+		eventHandler.init();
+		renderHandler.init();
+		currentState = lobby;
+	}
+	
 	public void setType(Type ty) {
 		connect.sendMessage("SetType " + ty.toString());
 		soldierType = ty;
-		st = State.lobby;		
 	}
 	
 	private void tick() {

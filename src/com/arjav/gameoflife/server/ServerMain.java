@@ -1,15 +1,14 @@
 package com.arjav.gameoflife.server;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,6 +20,8 @@ import java.util.Scanner;
 import com.arjav.gameoflife.client.game.Type;
 import com.arjav.gameoflife.client.game.entities.BuildingType;
 import com.arjav.gameoflife.client.glutils.FileUtils;
+import com.arjav.gameoflife.client.net.Client;
+import com.arjav.gameoflife.client.net.ClientConnect;
 
 public class ServerMain {
 
@@ -60,7 +61,7 @@ public class ServerMain {
 			remainingSurvivors = registeredUsers.size();
 			supplies = 0;
 			housingCapacity = 0;
-			serverAddr = InetAddress.getLocalHost();
+			serverAddr = InetAddress.getByName(ClientConnect.getLocalIPAddress());
 			playerRecords = new ArrayList<PlayerRecord>();
 			usernamePlayerMap = new HashMap<String, PlayerPacket>();
 		} catch (UnknownHostException e) {
@@ -89,8 +90,7 @@ public class ServerMain {
 					Scanner sc = new Scanner(System.in);
 					while(running) {
 						String command = sc.nextLine();
-						switch(command) {
-						case "exit":
+						if(command.equals("exit")) {
 							running = false;
 							break;
 						}
@@ -111,7 +111,7 @@ public class ServerMain {
 			String req = peekMessage(playerRecord);
 			if(req != null) {
 				if(req.equals("GetType")) {
-					sendObject(playerRecord, playerRecord.getType());
+					sendObject(playerRecord, playerRecord.type);
 				}
 				else if(req.equals("Logout")) {
 					iter.remove();
@@ -119,7 +119,7 @@ public class ServerMain {
 				}
 				else if(req.startsWith("SetType")) {
 					String type = req.split(" ")[1];
-					playerRecord.setType(Type.valueOf(type));
+					playerRecord.type = Type.valueOf(type);
 					getUser(playerRecord.getName()).setType(type);
 				}
 				else if(req.startsWith("GetWorld")) {
@@ -129,13 +129,17 @@ public class ServerMain {
 					}
 				}
 				else if(req.startsWith("Tick")) {
-					PlayerPacket receivedPacket = (PlayerPacket) getObject(playerRecord);
-					sendMessage(playerRecord, "" + (usernamePlayerMap.size()-1));
+					sendMessage(playerRecord, "" + usernamePlayerMap.size());
 					Iterator<String> iterator = usernamePlayerMap.keySet().iterator();
+					
 					for(int i = 0; i < usernamePlayerMap.size(); i++) {
 						PlayerPacket packetToSend = usernamePlayerMap.get(iterator.next());
-						if(packetToSend.getName().equals(receivedPacket.getName())) packetToSend = receivedPacket;
-						else sendObject(playerRecord, packetToSend);
+						sendObject(playerRecord, packetToSend);
+					}
+					
+					for(int i = 0; i < usernamePlayerMap.size(); i++) {
+						PlayerPacket receivedPacket = (PlayerPacket) getObject(playerRecord);
+						usernamePlayerMap.put(receivedPacket.getName(), receivedPacket);
 					}
 				}
 				
@@ -159,12 +163,12 @@ public class ServerMain {
 				return;
 			}
 			else {
-				newPlayer = new PlayerRecord(0, 0, clientInfo[1], regUser.getType(), c);
+				newPlayer = new PlayerRecord(clientInfo[1], regUser.getType(), c);
 			}
 		} else {
 			registeredUsers.add(new User(clientInfo[1], clientInfo[2]));
 			remainingSurvivors++;
-			newPlayer = new PlayerRecord(0, 0, clientInfo[1], null, c);
+			newPlayer = new PlayerRecord(clientInfo[1], null, c);
 		}
 		
 		NetUtils.sendMessage(currentClientReqSocket, clientInfo[0] + " CP " + c.getServerSocket().getLocalPort());
@@ -186,7 +190,7 @@ public class ServerMain {
 		}
 		else {
 			playerRecords.add(newPlayer);
-			usernamePlayerMap.put(newPlayer.getName(), (PlayerPacket)newPlayer);
+			usernamePlayerMap.put(newPlayer.getName(), new PlayerPacket(0, 0, newPlayer.getName(), newPlayer.type, 0, 0, false));
 			System.out.println("Client initialised successfullly");
 		}
 	}
@@ -197,8 +201,11 @@ public class ServerMain {
 			public void run() {
 				while(running) {
 					try {
+						System.out.println("Trying");
 						if(currentClientReqSocket == null || currentClientReqSocket.isClosed()) {
+							System.out.println("Accepting");
 							currentClientReqSocket = reqSocket.accept();
+							System.out.println("Accepted");
 							NetUtils.sendMessage(currentClientReqSocket, "OK");
 							System.out.println("Sent OK");
 							String msgReceived = NetUtils.getMessage(currentClientReqSocket);
@@ -210,6 +217,10 @@ public class ServerMain {
 								joinClient(msgReceived.substring(3, msgReceived.length()));
 							}
 						}
+					}
+					catch (SocketException e) {
+						if(running == false) break;
+						else e.printStackTrace();
 					}
 					catch (IOException e) {
 						e.printStackTrace();
@@ -240,20 +251,11 @@ public class ServerMain {
 		broadcast(msg, broadcastSocket, localGroup, MULTICAST_CLIENT_PORT);
 	}
 	
-	private void end() {
-		running = false;
-		try {
-			publicReqProcessThread.join();
-			privateReqProcessThread.join();
-		} catch(InterruptedException e) {
-			e.printStackTrace();
-		}
-		
+	private void end() {		
 		broadcastSocket.close();
 		try {
 			reqSocket.close();
 			if(currentClientReqSocket != null) currentClientReqSocket.close();
-			reqSocket.close();
 			PrintWriter pw = new PrintWriter(new FileWriter(new File(getClass().getResource("/Users.txt").getPath())));
 			for(User user : registeredUsers) {
 				String line = user.getUsername() + " " + user.getPassword() + " " + user.getType();
@@ -267,6 +269,14 @@ public class ServerMain {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		try {
+			publicReqProcessThread.join();
+			privateReqProcessThread.join();
+		} catch(InterruptedException e) {
+			e.printStackTrace();
+		}
+		
 		System.exit(0);
 	}
 	
@@ -331,7 +341,7 @@ public class ServerMain {
 	}
 	
 	private static void sendMessage(PlayerRecord playerRecord, String msg) {
-		sendObject(playerRecord, msg);
+		playerRecord.getAssociatedClient().sendMessage(msg);
 	}
 	
 	private static String peekMessage(PlayerRecord playerRecord) {

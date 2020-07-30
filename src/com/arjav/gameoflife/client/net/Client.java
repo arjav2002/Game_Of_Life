@@ -1,4 +1,4 @@
-package com.arjav.gameoflife.server;
+package com.arjav.gameoflife.client.net;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -10,17 +10,14 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 import com.arjav.gameoflife.client.glutils.FileUtils;
+import com.arjav.gameoflife.server.User;
 
-public class Client {
+public class Client extends InformationProtocol{
 	
 	private String IPaddr; // client's IP address
 	private ServerSocket serverSock; // dedicated socket for the client
 	private Socket socket;
 	private User user;
-	private BufferedReader br;
-	private PrintWriter pw;
-	private ObjectOutputStream oos;
-	private ObjectInputStream ois;
 	
 	public Client(String IPaddr, String username, String password) {
 		this.IPaddr = IPaddr;
@@ -45,37 +42,6 @@ public class Client {
 		}
 	}
 	
-	public void sendMessage(String msg) {
-		pw.println(msg);
-		pw.flush();
-	}
-	
-	public void sendObject(Object obj) {
-		try {
-			String msg = getMessage();
-			while(!msg.equals("SEND")) msg = getMessage();
-			oos.writeObject(obj);
-			oos.flush();
-		} catch (IOException e) {
-			System.err.println("Not able to send object to server");
-			e.printStackTrace();
-		}
-	}
-	
-	public Object getObject() {
-		Object obj = null;
-		try {
-			sendMessage("SEND");
-			while(obj == null) {
-				obj = ois.readObject();			
-			}
-		} catch (ClassNotFoundException | IOException e) {
-			System.err.println("Not able to read objects from server");
-			e.printStackTrace();
-		}
-		return obj;
-	}
-	
 	public String peekMessage() {
 		String msg = "";
 		try {
@@ -86,19 +52,7 @@ public class Client {
 		}
 		return msg;
 	}
-	
-	public String getMessage() {
-		String msg = "";
-		try {
-			while(FileUtils.isEmpty(msg)) {
-				msg = br.readLine();
-			}
-		} catch (IOException e) {
-			System.err.println("Not able to get message for client: " + IPaddr);
-			e.printStackTrace();
-		}
-		return msg;
-	}
+
 	
 	public void closeSockets() {
 		try {
