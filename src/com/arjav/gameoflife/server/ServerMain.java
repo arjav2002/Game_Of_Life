@@ -111,18 +111,20 @@ public class ServerMain {
 			while(iter.hasNext()){
 				PlayerClient playerRecord = iter.next();
 				String req = peekMessage(playerRecord);
+				String name = playerRecord.getName();
 				if(req != null) {
 					if(req.equals("GetType")) {
 						sendObject(playerRecord, playerRecord.type);
 					}
 					else if(req.equals("Logout")) {
 						iter.remove();
+						usernamePlayerMap.remove(name);
 						sendMessage(playerRecord, "LoggedOut");
 					}
 					else if(req.startsWith("SetType")) {
 						String type = req.split(" ")[1];
 						playerRecord.type = Type.valueOf(type);
-						getUser(playerRecord.getName()).setType(type);
+						getUser(name).setType(type);
 					}
 					else if(req.startsWith("GetWorld")) {
 						sendMessage(playerRecord, buildings.size() + " " + leftEnd + " " + rightEnd);
