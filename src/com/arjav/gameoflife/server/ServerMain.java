@@ -13,6 +13,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Scanner;
@@ -45,7 +46,8 @@ public class ServerMain {
 	private ArrayList<BuildingPacket> buildings;
 	private ArrayList<PlayerClient> players;
 	private Map<String, PlayerPacket> usernamePlayerMap;
-	private ArrayList<User> registeredUsers;	
+	private ArrayList<User> registeredUsers;
+	private LinkedList<GameplayEvent> gpEvents;
 	
 	private int remainingSurvivors, supplies, housingCapacity, leftEnd, rightEnd;
 	
@@ -64,6 +66,7 @@ public class ServerMain {
 			housingCapacity = 0;
 			serverAddr = InetAddress.getByName(ClientConnect.getLocalIPAddress());
 			players = new ArrayList<PlayerClient>();
+			gpEvents = new LinkedList<GameplayEvent>();
 			usernamePlayerMap = new HashMap<String, PlayerPacket>();
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
@@ -107,6 +110,9 @@ public class ServerMain {
 	
 	private void processRequests() {
 		synchronized(sharedLock) {
+			while(!gpEvents.isEmpty() && gpEvents.getFirst().isDone()) {
+				gpEvents.removeFirst();
+			}
 			ListIterator<PlayerClient> iter = players.listIterator();
 			while(iter.hasNext()){
 				PlayerClient playerRecord = iter.next();
@@ -120,6 +126,7 @@ public class ServerMain {
 						iter.remove();
 						usernamePlayerMap.remove(name);
 						sendMessage(playerRecord, "LoggedOut");
+						gpEvents.add(new GameplayEvent(name + " left", players));
 					}
 					else if(req.startsWith("SetType")) {
 						String type = req.split(" ")[1];
@@ -133,6 +140,13 @@ public class ServerMain {
 						}
 					}
 					else if(req.startsWith("Tick")) {
+						for(GameplayEvent event : gpEvents) {
+							sendMessage(playerRecord, event.getEventString());
+							event.notifiedUser(name);
+						}
+						
+						sendMessage(playerRecord, "END");
+						
 						sendMessage(playerRecord, "" + usernamePlayerMap.size());
 						Iterator<String> iterator = usernamePlayerMap.keySet().iterator();
 						
