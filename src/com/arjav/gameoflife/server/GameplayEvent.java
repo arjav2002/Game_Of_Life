@@ -31,6 +31,10 @@ public class GameplayEvent {
 		return usersNotified.get(name);
 	}
 	
+	public boolean shouldNotifyUser(String name) {
+		return usersNotified.containsKey(name) && !usersNotified.get(name);
+	}
+	
 	public String getEventString() {
 		return event;
 	}

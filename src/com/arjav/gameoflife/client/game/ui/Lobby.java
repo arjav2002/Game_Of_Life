@@ -1,12 +1,11 @@
 package com.arjav.gameoflife.client.game.ui;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Scanner;
 
 import com.arjav.gameoflife.client.game.Camera;
 import com.arjav.gameoflife.client.game.Game;
+import com.arjav.gameoflife.client.game.Type;
 import com.arjav.gameoflife.client.game.entities.Building;
 import com.arjav.gameoflife.client.game.entities.BuildingType;
 import com.arjav.gameoflife.client.game.entities.Player;
@@ -82,6 +81,7 @@ public class Lobby extends GameState {
 			String msg = connect.getMessage();
 			if(msg.equals("END")) break;
 			gameplayEvents[nCurrentGameplayEvents++] = msg;
+			System.out.println(msg);
 		}
 		
 		removeLeavingPlayers();

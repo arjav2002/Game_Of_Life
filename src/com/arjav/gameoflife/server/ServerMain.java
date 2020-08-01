@@ -122,6 +122,13 @@ public class ServerMain {
 					if(req.equals("GetType")) {
 						sendObject(playerRecord, playerRecord.type);
 					}
+					else if(req.equals("JoinLobby")) {
+						PlayerPacket firstPp = (PlayerPacket) getObject(playerRecord);
+						usernamePlayerMap.put(name, firstPp);
+						GameplayEvent joiningEvent = new GameplayEvent(name + " " + firstPp.getType() + " joined", players);
+						gpEvents.add(joiningEvent);
+						joiningEvent.removeUser(name);
+					}
 					else if(req.equals("Logout")) {
 						iter.remove();
 						usernamePlayerMap.remove(name);
@@ -141,6 +148,7 @@ public class ServerMain {
 					}
 					else if(req.startsWith("Tick")) {
 						for(GameplayEvent event : gpEvents) {
+							if(!event.shouldNotifyUser(name)) continue;
 							sendMessage(playerRecord, event.getEventString());
 							event.notifiedUser(name);
 						}
@@ -209,7 +217,6 @@ public class ServerMain {
 			}
 			else {
 				players.add(newPlayer);
-				usernamePlayerMap.put(newPlayer.getName(), new PlayerPacket(0, 0, newPlayer.getName(), newPlayer.type, 0, 0, false));
 				System.out.println("Client initialised successfullly");
 			}
 		}

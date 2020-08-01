@@ -152,6 +152,8 @@ public class Game implements Runnable {
 		eventHandler.init();
 		renderHandler.init();
 		currentState = lobby;
+		connect.sendMessage("JoinLobby");
+		connect.sendObject(player.getPlayerPacket());
 	}
 	
 	public void setType(Type ty) {
