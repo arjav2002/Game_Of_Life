@@ -45,6 +45,9 @@ public class Lobby extends GameState {
 		PADDING = BUILDING_WIDTH/10;
 		buildings = new ArrayList<Building>();
 		players = new Player[MAX_PLAYERS];
+		for(int i = 0; i < MAX_PLAYERS; i++) {
+			players[i] = null;
+		}
 		gameplayEvents = new String[MAX_GAMEPLAY_EVENTS];
 		tiles = new ArrayList<Tile>();
 		this.player = player;
@@ -85,18 +88,19 @@ public class Lobby extends GameState {
 		}
 		
 		removeLeavingPlayers();
+		addJoiningPlayers();
 		
 		nCurrentPlayers = Integer.parseInt(connect.getMessage());
 		for(int i = 0; i < nCurrentPlayers; i++) {
 			PlayerPacket pp = (PlayerPacket) connect.getObject();
 			if(pp.getName().equals(player.getName())) continue;
-			createPlayerEntry(pp);
+			updatePlayerEntry(pp);
 		}
 				
 		player.tick(game.getCamera(), tiles);
 
-		for(int i = 0; i < nCurrentPlayers; i++) {
-			connect.sendObject(players[i].getPlayerPacket());
+		for(int i = 0; i < MAX_PLAYERS; i++) {
+			if(players[i] != null) connect.sendObject(players[i].getPlayerPacket());
 		}
 	}
 	
@@ -134,6 +138,16 @@ public class Lobby extends GameState {
 			tiles.add(new Tile("/mud.png", new Vector3f(i, LAND_LOC, 1.0f), TILE_WIDTH, TILE_HEIGHT, TileType.mud));
 		}
 		
+		int nPlayers = Integer.parseInt(connect.getMessage());
+		for(int i = 1; i < nPlayers+1; i++) {
+			PlayerPacket pp =  (PlayerPacket) connect.getObject();
+			Player p = new Player(pp.getX(), pp.getY(), pp.getName(), pp.getType());
+			p.velX = pp.getVelX();
+			p.velY = pp.getVelY();
+			p.init();
+			players[i] = p;
+		}
+		
 		sc.close();
 	}
 	
@@ -152,7 +166,24 @@ public class Lobby extends GameState {
 		}
 	}
 	
-	private void createPlayerEntry(PlayerPacket pp) {
+	private void addJoiningPlayers() {
+		for(int j = 0; j < nCurrentGameplayEvents; j++) {
+			String event = gameplayEvents[j];
+			if(event.endsWith("joined")) {
+				String name = event.split(" ")[0];
+				String type = event.split(" ")[1];
+				for(int i = 0; i < MAX_PLAYERS; i++) {
+					if(players[i] == null) {
+						Player p = new Player(0, 0, name, Type.valueOf(type));
+						p.init();
+						players[i] = p;
+					}
+				}
+			}
+		}
+	}
+	
+	private void updatePlayerEntry(PlayerPacket pp) {
 		for(int i = 0; i < MAX_PLAYERS; i++) {
 			Player p = players[i];
 			if(p != null && pp.getName().equals(p.getName())) {
@@ -164,12 +195,6 @@ public class Lobby extends GameState {
 				return;
 			}
 		}
-		Player p = new Player(Player.getTexture(pp.getType()), pp.getX(), pp.getY(), pp.getName(), pp.getType());
-		p.velX = pp.getVelX();
-		p.velY = pp.getVelY();
-		p.setShooting(pp.isShooting());
-		p.init();
-		for(int i = 0; i < MAX_PLAYERS; i++) if(players[i] == null) players[i] = p;
 	}
 
 	private String getTexture(BuildingType type) {

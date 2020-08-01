@@ -21,8 +21,8 @@ public class Player extends Entity {
 	private Texture leftHeadingTexture, rightHeadingTexture;
 	private boolean shooting; // boolean for if bullet left the gun in the last tick
 	
-	public Player(String texturePath, int x, int y, String name, Type type) {
-		super(texturePath, new Vector3f(x, y, 1.0f), WIDTH, HEIGHT);
+	public Player(int x, int y, String name, Type type) {
+		super(getTexture(type), new Vector3f(x, y, 1.0f), WIDTH, HEIGHT);
 		this.type = type;
 		this.name = name;
 		this.shooting = false;

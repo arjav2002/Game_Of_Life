@@ -147,7 +147,7 @@ public class Game implements Runnable {
 	
 	public void moveToLobby() {
 		st = State.lobby;
-		player = new Player(Player.getTexture(soldierType), 0, 0, username, soldierType);
+		player = new Player(0, 0, username, soldierType);
 		lobby = new Lobby(this, "/vertex.shd", "/fragment.shd", connect, player);
 		eventHandler.init();
 		renderHandler.init();

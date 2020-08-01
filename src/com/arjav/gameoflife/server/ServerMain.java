@@ -145,6 +145,10 @@ public class ServerMain {
 						for(BuildingPacket buildingPacket : buildings) {
 							sendObject(playerRecord, buildingPacket);
 						}
+						sendMessage(playerRecord, usernamePlayerMap.size() + "");
+						for(PlayerPacket pp : usernamePlayerMap.values()) {
+							sendObject(playerRecord, pp);
+						}
 					}
 					else if(req.startsWith("Tick")) {
 						for(GameplayEvent event : gpEvents) {
