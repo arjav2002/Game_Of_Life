@@ -100,7 +100,9 @@ public class Lobby extends GameState {
 		player.tick(game.getCamera(), tiles);
 
 		for(int i = 0; i < MAX_PLAYERS; i++) {
-			if(players[i] != null) connect.sendObject(players[i].getPlayerPacket());
+			if(players[i] != null) {
+				connect.sendObject(players[i].getPlayerPacket());
+			}
 		}
 	}
 	
@@ -160,6 +162,7 @@ public class Lobby extends GameState {
 					Player p = players[i];
 					if(p != null && p.getName().equals(name)) {
 						players[i] = null;
+						break;
 					}
 				}
 			}
@@ -177,6 +180,7 @@ public class Lobby extends GameState {
 						Player p = new Player(0, 0, name, Type.valueOf(type));
 						p.init();
 						players[i] = p;
+						break;
 					}
 				}
 			}

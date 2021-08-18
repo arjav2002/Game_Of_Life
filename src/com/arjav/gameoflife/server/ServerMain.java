@@ -100,8 +100,10 @@ public class ServerMain {
 	}
 	
 	private boolean processRequests(PlayerClient playerRecord) {
-		while(!gpEvents.isEmpty() && gpEvents.getFirst().isDone()) {
-			gpEvents.removeFirst();
+		synchronized(gpEvents) {
+			while(!gpEvents.isEmpty() && gpEvents.getFirst().isDone()) {
+				gpEvents.removeFirst();
+			}
 		}
 		String req = peekMessage(playerRecord);
 		String name = playerRecord.getName();
@@ -111,13 +113,13 @@ public class ServerMain {
 			}
 			else if(req.equals("JoinLobby")) {
 				PlayerPacket firstPp = (PlayerPacket) getObject(playerRecord);
-				usernamePlayerMap.put(name, firstPp);
+				synchronized(usernamePlayerMap) { usernamePlayerMap.put(name, firstPp); }
 				GameplayEvent joiningEvent = new GameplayEvent(name + " " + firstPp.getType() + " joined", players);
 				gpEvents.add(joiningEvent);
 				joiningEvent.removeUser(name);
 			}
 			else if(req.equals("Logout")) {
-				usernamePlayerMap.remove(name);
+				synchronized(usernamePlayerMap) { usernamePlayerMap.remove(name); }
 				sendMessage(playerRecord, "LoggedOut");
 				gpEvents.add(new GameplayEvent(name + " left", players));
 				return false;
@@ -132,31 +134,37 @@ public class ServerMain {
 				for(BuildingPacket buildingPacket : buildings) {
 					sendObject(playerRecord, buildingPacket);
 				}
-				sendMessage(playerRecord, usernamePlayerMap.size() + "");
-				for(PlayerPacket pp : usernamePlayerMap.values()) {
-					sendObject(playerRecord, pp);
+				synchronized(usernamePlayerMap) {
+					sendMessage(playerRecord, usernamePlayerMap.size() + "");
+					for(PlayerPacket pp : usernamePlayerMap.values()) {
+						sendObject(playerRecord, pp);
+					}
 				}
 			}
 			else if(req.startsWith("Tick")) {
-				for(GameplayEvent event : gpEvents) {
-					if(!event.shouldNotifyUser(name)) continue;
-					sendMessage(playerRecord, event.getEventString());
-					event.notifiedUser(name);
+				synchronized(gpEvents) {
+					for(GameplayEvent event : gpEvents) {
+						if(!event.shouldNotifyUser(name)) continue;
+						sendMessage(playerRecord, event.getEventString());
+						event.notifiedUser(name);
+					}
 				}
 				
 				sendMessage(playerRecord, "END");
 				
-				sendMessage(playerRecord, "" + usernamePlayerMap.size());
-				Iterator<String> iterator = usernamePlayerMap.keySet().iterator();
-				
-				for(int i = 0; i < usernamePlayerMap.size(); i++) {
-					PlayerPacket packetToSend = usernamePlayerMap.get(iterator.next());
-					sendObject(playerRecord, packetToSend);
-				}
-				
-				for(int i = 0; i < usernamePlayerMap.size(); i++) {
-					PlayerPacket receivedPacket = (PlayerPacket) getObject(playerRecord);
-					usernamePlayerMap.put(receivedPacket.getName(), receivedPacket);
+				synchronized(usernamePlayerMap) {
+					sendMessage(playerRecord, "" + usernamePlayerMap.size());
+					Iterator<String> iterator = usernamePlayerMap.keySet().iterator();
+					
+					for(int i = 0; i < usernamePlayerMap.size(); i++) {
+						PlayerPacket packetToSend = usernamePlayerMap.get(iterator.next());
+						sendObject(playerRecord, packetToSend);
+					}
+					
+					for(int i = 0; i < usernamePlayerMap.size(); i++) {
+						PlayerPacket receivedPacket = (PlayerPacket) getObject(playerRecord);
+						usernamePlayerMap.put(receivedPacket.getName(), receivedPacket);
+					}
 				}
 			}
 		}
@@ -189,7 +197,7 @@ public class ServerMain {
 			}
 			
 			NetUtils.sendMessage(currentClientReqSocket, clientInfo[0] + " CP " + c.getServerSocket().getLocalPort());
-			System.out.println("Sent dedicated port to client");
+			System.out.println("Sent dedicated port " + c.getServerSocket().getLocalPort() + "  to client " + c.getUser().getUsername());
 			// correct password, here's your dedicated port, client
 			try {
 				if(NetUtils.getMessage(currentClientReqSocket).equals("OK")) currentClientReqSocket.close();
