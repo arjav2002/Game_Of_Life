@@ -40,7 +40,6 @@ public class ServerMain {
 	private Socket currentClientReqSocket;
 	
 	private Thread publicReqProcessThread;
-	private Thread privateReqProcessThread;
 	private Thread readCommands;
 	
 	private ArrayList<BuildingPacket> buildings;
@@ -80,14 +79,6 @@ public class ServerMain {
 			running = true;
 			createAndStartReqProcessThread();
 			
-			privateReqProcessThread = new Thread(new Runnable() {
-				@Override
-				public void run() {
-					while(running) processRequests();
-				}
-			});
-			privateReqProcessThread.start();
-			
 			readCommands = new Thread(new Runnable() {
 				@Override
 				public void run() {
@@ -108,73 +99,68 @@ public class ServerMain {
 		}
 	}
 	
-	private void processRequests() {
-		synchronized(sharedLock) {
-			while(!gpEvents.isEmpty() && gpEvents.getFirst().isDone()) {
-				gpEvents.removeFirst();
+	private boolean processRequests(PlayerClient playerRecord) {
+		while(!gpEvents.isEmpty() && gpEvents.getFirst().isDone()) {
+			gpEvents.removeFirst();
+		}
+		String req = peekMessage(playerRecord);
+		String name = playerRecord.getName();
+		if(req != null) {
+			if(req.equals("GetType")) {
+				sendObject(playerRecord, playerRecord.type);
 			}
-			ListIterator<PlayerClient> iter = players.listIterator();
-			while(iter.hasNext()){
-				PlayerClient playerRecord = iter.next();
-				String req = peekMessage(playerRecord);
-				String name = playerRecord.getName();
-				if(req != null) {
-					if(req.equals("GetType")) {
-						sendObject(playerRecord, playerRecord.type);
-					}
-					else if(req.equals("JoinLobby")) {
-						PlayerPacket firstPp = (PlayerPacket) getObject(playerRecord);
-						usernamePlayerMap.put(name, firstPp);
-						GameplayEvent joiningEvent = new GameplayEvent(name + " " + firstPp.getType() + " joined", players);
-						gpEvents.add(joiningEvent);
-						joiningEvent.removeUser(name);
-					}
-					else if(req.equals("Logout")) {
-						iter.remove();
-						usernamePlayerMap.remove(name);
-						sendMessage(playerRecord, "LoggedOut");
-						gpEvents.add(new GameplayEvent(name + " left", players));
-					}
-					else if(req.startsWith("SetType")) {
-						String type = req.split(" ")[1];
-						playerRecord.type = Type.valueOf(type);
-						getUser(name).setType(type);
-					}
-					else if(req.startsWith("GetWorld")) {
-						sendMessage(playerRecord, buildings.size() + " " + leftEnd + " " + rightEnd);
-						for(BuildingPacket buildingPacket : buildings) {
-							sendObject(playerRecord, buildingPacket);
-						}
-						sendMessage(playerRecord, usernamePlayerMap.size() + "");
-						for(PlayerPacket pp : usernamePlayerMap.values()) {
-							sendObject(playerRecord, pp);
-						}
-					}
-					else if(req.startsWith("Tick")) {
-						for(GameplayEvent event : gpEvents) {
-							if(!event.shouldNotifyUser(name)) continue;
-							sendMessage(playerRecord, event.getEventString());
-							event.notifiedUser(name);
-						}
-						
-						sendMessage(playerRecord, "END");
-						
-						sendMessage(playerRecord, "" + usernamePlayerMap.size());
-						Iterator<String> iterator = usernamePlayerMap.keySet().iterator();
-						
-						for(int i = 0; i < usernamePlayerMap.size(); i++) {
-							PlayerPacket packetToSend = usernamePlayerMap.get(iterator.next());
-							sendObject(playerRecord, packetToSend);
-						}
-						
-						for(int i = 0; i < usernamePlayerMap.size(); i++) {
-							PlayerPacket receivedPacket = (PlayerPacket) getObject(playerRecord);
-							usernamePlayerMap.put(receivedPacket.getName(), receivedPacket);
-						}
-					}
+			else if(req.equals("JoinLobby")) {
+				PlayerPacket firstPp = (PlayerPacket) getObject(playerRecord);
+				usernamePlayerMap.put(name, firstPp);
+				GameplayEvent joiningEvent = new GameplayEvent(name + " " + firstPp.getType() + " joined", players);
+				gpEvents.add(joiningEvent);
+				joiningEvent.removeUser(name);
+			}
+			else if(req.equals("Logout")) {
+				usernamePlayerMap.remove(name);
+				sendMessage(playerRecord, "LoggedOut");
+				gpEvents.add(new GameplayEvent(name + " left", players));
+				return false;
+			}
+			else if(req.startsWith("SetType")) {
+				String type = req.split(" ")[1];
+				playerRecord.type = Type.valueOf(type);
+				getUser(name).setType(type);
+			}
+			else if(req.startsWith("GetWorld")) {
+				sendMessage(playerRecord, buildings.size() + " " + leftEnd + " " + rightEnd);
+				for(BuildingPacket buildingPacket : buildings) {
+					sendObject(playerRecord, buildingPacket);
+				}
+				sendMessage(playerRecord, usernamePlayerMap.size() + "");
+				for(PlayerPacket pp : usernamePlayerMap.values()) {
+					sendObject(playerRecord, pp);
+				}
+			}
+			else if(req.startsWith("Tick")) {
+				for(GameplayEvent event : gpEvents) {
+					if(!event.shouldNotifyUser(name)) continue;
+					sendMessage(playerRecord, event.getEventString());
+					event.notifiedUser(name);
+				}
+				
+				sendMessage(playerRecord, "END");
+				
+				sendMessage(playerRecord, "" + usernamePlayerMap.size());
+				Iterator<String> iterator = usernamePlayerMap.keySet().iterator();
+				
+				for(int i = 0; i < usernamePlayerMap.size(); i++) {
+					PlayerPacket packetToSend = usernamePlayerMap.get(iterator.next());
+					sendObject(playerRecord, packetToSend);
+				}
+				
+				for(int i = 0; i < usernamePlayerMap.size(); i++) {
+					PlayerPacket receivedPacket = (PlayerPacket) getObject(playerRecord);
+					usernamePlayerMap.put(receivedPacket.getName(), receivedPacket);
 				}
 			}
 		}
+		return true;
 	}
 	
 	private synchronized void joinClient(String info) {
@@ -222,6 +208,15 @@ public class ServerMain {
 			else {
 				players.add(newPlayer);
 				System.out.println("Client initialised successfullly");
+				new Thread(new Runnable() {
+					
+					PlayerClient pc = newPlayer;
+					
+					@Override
+					public void run() {
+						while(processRequests(pc));
+					}
+				}).start();
 			}
 		}
 	}
@@ -239,14 +234,20 @@ public class ServerMain {
 							System.out.println("Accepted");
 							NetUtils.sendMessage(currentClientReqSocket, "OK");
 							System.out.println("Sent OK");
-							String msgReceived = NetUtils.getMessage(currentClientReqSocket);
-							/*
-							 * CJ IP -> Client join request
-							 * */
-							System.out.println(msgReceived);
-							if(msgReceived.startsWith("CJ ")) {
-								joinClient(msgReceived.substring(3, msgReceived.length()));
-							}
+							
+							new Thread(new Runnable() {
+								@Override
+								public void run() {
+									String msgReceived = NetUtils.getMessage(currentClientReqSocket);
+									/*
+									 * CJ IP -> Client join request
+									 * */
+									System.out.println(msgReceived);
+									if(msgReceived.startsWith("CJ ")) {
+										joinClient(msgReceived.substring(3, msgReceived.length()));
+									}
+								}
+							}).start();
 						}
 					}
 					catch (SocketException e) {
@@ -303,7 +304,6 @@ public class ServerMain {
 		
 		try {
 			publicReqProcessThread.join();
-			privateReqProcessThread.join();
 		} catch(InterruptedException e) {
 			e.printStackTrace();
 		}
